@@ -19,6 +19,10 @@ namespace RetroAmp.Media
 
         public static bool Available => Tools.YtDlpPath != null;
 
+        /// <summary>Optional browser name (firefox, edge, chrome, brave, opera…) to borrow YouTube sign-in cookies from.</summary>
+        public static string CookiesBrowser = "";
+        static string Cookies => string.IsNullOrWhiteSpace(CookiesBrowser) ? "" : "--cookies-from-browser " + CookiesBrowser.Trim() + " ";
+
         sealed class Result { public int Exit; public List<string> Out = new List<string>(); public string LastError = ""; }
 
         static string Q(string s) => "\"" + (s ?? "").Replace("\"", "\\\"") + "\"";
@@ -116,7 +120,7 @@ namespace RetroAmp.Media
                 string fmt = "bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio[acodec^=mp4a]/bestaudio[ext=webm]/bestaudio/best";
                 string outTmpl = Path.Combine(AppPaths.CacheDir, "%(extractor_key)s-%(id)s.%(ext)s");
                 string print = "after_move:%(filepath)s" + Sep + "%(title)s" + Sep + "%(duration)s" + Sep + "%(uploader,artist)s";
-                string args = "-f " + Q(fmt) + " --no-playlist --no-mtime --newline --no-warnings --match-filters \"!is_live\" " +
+                string args = Cookies + "-f " + Q(fmt) + " --no-playlist --no-mtime --newline --no-warnings --match-filters \"!is_live\" " +
                               "-o " + Q(outTmpl) + " --no-simulate --print " + Q(print) + " " + Q(item.Location);
                 var res = await RunAsync(args, line =>
                 {
@@ -148,7 +152,7 @@ namespace RetroAmp.Media
         public static async Task<string> GetVideoUrlAsync(string url, CancellationToken ct)
         {
             string fmt = "best[ext=mp4][vcodec!=none][acodec!=none][height<=1080]/18/best[vcodec!=none][acodec!=none]";
-            var res = await RunAsync("-f " + Q(fmt) + " --no-playlist --no-warnings -g " + Q(url), null, ct);
+            var res = await RunAsync(Cookies + "-f " + Q(fmt) + " --no-playlist --no-warnings -g " + Q(url), null, ct);
             var u = res.Out.FirstOrDefault(Util.IsUrl);
             if (u == null) throw new Exception(string.IsNullOrEmpty(res.LastError) ? "No playable video format found." : res.LastError);
             return u;

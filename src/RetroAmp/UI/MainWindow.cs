@@ -905,6 +905,20 @@ namespace RetroAmp.UI
             var online = new MenuItem { Header = "Online (YouTube / SoundCloud)" };
             online.Items.Add(MI(YtDlp.Available ? "Update yt-dlp" : "Install yt-dlp", UpdateYtDlp));
             online.Items.Add(MI(Tools.DenoPath != null ? "Deno installed ✓ (reinstall)" : "Install Deno (better YouTube support)", InstallDeno));
+            var ck = new MenuItem { Header = "YouTube: use sign-in cookies from browser" };
+            foreach (var b in new[] { "", "firefox", "edge", "chrome", "brave", "opera", "vivaldi" })
+            {
+                string bb = b;
+                var mi = new MenuItem { Header = b == "" ? "Off" : char.ToUpper(b[0]) + b.Substring(1), IsCheckable = true, IsChecked = (s.CookiesBrowser ?? "") == b };
+                mi.Click += (o, e) =>
+                {
+                    s.CookiesBrowser = bb; YtDlp.CookiesBrowser = bb;
+                    player.ShowStatus(bb == "" ? "Browser cookies off" : "Using " + bb + " cookies for YouTube (close the browser if it fails)", 4);
+                };
+                ck.Items.Add(mi);
+            }
+            ck.ToolTip = "Helps when YouTube says 'Sign in to confirm you're not a bot'. Firefox works best.";
+            online.Items.Add(ck);
             online.Items.Add(new Separator());
             online.Items.Add(MI("Open cache folder", () => { try { Process.Start("explorer.exe", "\"" + AppPaths.CacheDir + "\""); } catch { } }));
             online.Items.Add(MI("Clear download cache (" + YtDlp.CacheSizeMb() + " MB)", () =>

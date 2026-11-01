@@ -45,6 +45,7 @@ namespace RetroAmp.Core
         public int LastIndex { get; set; } = -1;
         public long CacheLimitMb { get; set; } = 1024;
         public bool AskedForYtDlp { get; set; }
+        public string CookiesBrowser { get; set; } = "";
 
         public static Settings Load()
         {

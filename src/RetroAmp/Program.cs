@@ -45,6 +45,7 @@ namespace RetroAmp
                 System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (s, e) => { AppPaths.Log("Task: " + e.Exception); e.SetObserved(); };
 
                 var settings = Settings.Load();
+                YtDlp.CookiesBrowser = settings.CookiesBrowser ?? "";
                 TagLoader.Init(app.Dispatcher);
                 var player = new Player(settings);
                 player.ApplyDsp();

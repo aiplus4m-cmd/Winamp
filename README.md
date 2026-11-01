@@ -6,6 +6,12 @@
 
 > A lightweight retro-style music & video player for Windows with YouTube/SoundCloud streaming, a 10-band EQ, effects and visualizers.
 
+<p align="center">
+  <img src="assets/screenshots/main-window.png" width="420" alt="RetroAmp main window">
+  <img src="assets/screenshots/speakers.png" width="420" alt="Speakers visualizer"><br>
+  <img src="assets/screenshots/visualizers.png" width="560" alt="Other visualizers">
+</p>
+
 ## Tải về
 
 Vào trang **[Releases](../../releases/latest)**:
@@ -30,7 +36,7 @@ Yêu cầu: **Windows 10/11** (đã có sẵn .NET Framework 4.8 — app chỉ ~
 \* Một số định dạng cần codec miễn phí từ Microsoft Store (Web Media Extensions, HEVC, AV1).
 
 ### YouTube / SoundCloud hoạt động thế nào?
-RetroAmp dùng công cụ mã nguồn mở [yt-dlp](https://github.com/yt-dlp/yt-dlp). Lần đầu bạn mở link online, app hỏi và tự tải `yt-dlp.exe` (~18 MB) vào thư mục Tools. Nếu YouTube thay đổi và không phát được: **Menu → Online → Update yt-dlp**. Với YouTube, có thể cài thêm **Deno** (menu Online) để yt-dlp lấy đầy đủ định dạng.
+RetroAmp dùng công cụ mã nguồn mở [yt-dlp](https://github.com/yt-dlp/yt-dlp). Lần đầu bạn mở link online, app hỏi và tự tải `yt-dlp.exe` (~18 MB) vào thư mục Tools. Nếu YouTube thay đổi và không phát được: **Menu → Online → Update yt-dlp**. Với YouTube, có thể cài thêm **Deno** (menu Online) để yt-dlp lấy đầy đủ định dạng. Nếu YouTube báo *"Sign in to confirm you're not a bot"*, vào **Menu → Online → YouTube: use sign-in cookies from browser** và chọn trình duyệt bạn đã đăng nhập YouTube (Firefox ổn định nhất). File tải về được cache để nghe lại không cần tải lại; xóa cache trong cùng menu.
 
 ## Phím tắt
 

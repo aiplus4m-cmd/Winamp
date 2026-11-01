@@ -103,7 +103,7 @@ namespace RetroAmp.UI
                     dc.DrawRectangle(spectrumBrushes[ci], null, new Rect(x + 1, floor - (s + 1) * 6 + 1, bw - 2, 4.5));
                 }
                 double py = floor - a.Peaks[i] * maxH;
-                dc.DrawRectangle(Brushes.White, null, new Rect(x + 1, py - 3, bw - 2, 2));
+                if (a.Peaks[i] > 0.02f) dc.DrawRectangle(Brushes.White, null, new Rect(x + 1, py - 3, bw - 2, 2));
                 // reflection
                 if (bh > 1)
                 {
@@ -267,6 +267,7 @@ namespace RetroAmp.UI
             double a0 = -50, a1 = 50;
             var tick = new Pen(new SolidColorBrush(Color.FromRgb(40, 30, 20)), 1.2);
             var red = new Pen(new SolidColorBrush(Color.FromRgb(200, 30, 20)), 2.4);
+            dc.PushClip(new RectangleGeometry(new Rect(r.X + 2, r.Y + 2, r.Width - 4, r.Height - 4)));
             for (int i = 0; i <= 10; i++)
             {
                 double ang = (a0 + (a1 - a0) * i / 10.0) * Math.PI / 180;
@@ -274,6 +275,7 @@ namespace RetroAmp.UI
                 var p2 = new Point(pivot.X + Math.Sin(ang) * radius * (i % 5 == 0 ? 0.92 : 0.87), pivot.Y - Math.Cos(ang) * radius * (i % 5 == 0 ? 0.92 : 0.87));
                 dc.DrawLine(i >= 8 ? red : tick, p1, p2);
             }
+            dc.Pop();
             var vu = Theme.Text(this, "VU", Math.Max(8, r.Height * 0.14), new SolidColorBrush(Color.FromRgb(60, 40, 20)), true);
             dc.DrawText(vu, new Point(r.X + r.Width / 2 - vu.Width / 2, r.Y + r.Height * 0.52));
             var lb = Theme.Text(this, label, Math.Max(8, r.Height * 0.12), new SolidColorBrush(Color.FromRgb(90, 60, 30)), true);
