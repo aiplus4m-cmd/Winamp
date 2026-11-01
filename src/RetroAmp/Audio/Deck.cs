@@ -97,7 +97,6 @@ namespace RetroAmp.Audio
                     else if (removeAfterFade) { Finished = true; }
                     buffer[i] *= gain; buffer[i + 1] *= gain;
                 }
-                if (n < count) Finished = true;
                 return n;
             }
         }
