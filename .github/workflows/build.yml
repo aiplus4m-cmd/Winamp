@@ -41,16 +41,28 @@ jobs:
           if (-not $done) { $p.Kill(); throw "self-test timed out" }
           if ($p.ExitCode -ne 0) { throw "self-test failed with exit code $($p.ExitCode)" }
 
-      - name: Dump screenshots (base64)
-        if: always()
+      - name: Dump screenshot preview (base64 JPEG)
+        if: always() && !startsWith(github.ref, 'refs/tags/')
         shell: pwsh
         run: |
-          foreach ($f in Get-ChildItem selftest-out -Filter *.png) {
-            $b = [Convert]::ToBase64String([IO.File]::ReadAllBytes($f.FullName))
-            Write-Output "PNGBEGIN $($f.Name)"
-            for ($i = 0; $i -lt $b.Length; $i += 8000) { Write-Output ("PNG|" + $b.Substring($i, [Math]::Min(8000, $b.Length - $i))) }
-            Write-Output "PNGEND $($f.Name)"
-          }
+          Add-Type -AssemblyName System.Drawing
+          $files = Get-ChildItem selftest-out -Filter *.png | Sort-Object Name
+          $tiles = $files | ForEach-Object { [System.Drawing.Image]::FromFile($_.FullName) }
+          $tw = 400
+          $rows = @(); $x = 0; $y = 0; $rowH = 0; $W = 1200; $H = 0
+          foreach ($t in $tiles) { $h = [int]($t.Height * $tw / $t.Width); if ($x + $tw -gt $W) { $x = 0; $y += $rowH; $rowH = 0 }; $rows += ,@($t, $x, $y, $h); $x += $tw; if ($h -gt $rowH) { $rowH = $h } }
+          $H = $y + $rowH
+          $bmp = New-Object System.Drawing.Bitmap $W, $H
+          $g = [System.Drawing.Graphics]::FromImage($bmp)
+          $g.InterpolationMode = 'HighQualityBicubic'
+          foreach ($r in $rows) { $g.DrawImage($r[0], $r[1], $r[2], $tw, $r[3]) }
+          $codec = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() | Where-Object { $_.MimeType -eq 'image/jpeg' }
+          $ep = New-Object System.Drawing.Imaging.EncoderParameters 1
+          $ep.Param[0] = New-Object System.Drawing.Imaging.EncoderParameter ([System.Drawing.Imaging.Encoder]::Quality), 72L
+          $bmp.Save("$pwd\preview.jpg", $codec, $ep)
+          $b = [Convert]::ToBase64String([IO.File]::ReadAllBytes("$pwd\preview.jpg"))
+          Write-Output "PREVIEW_BYTES $($b.Length)"
+          for ($i = 0; $i -lt $b.Length; $i += 8000) { Write-Output ("JPG|" + $b.Substring($i, [Math]::Min(8000, $b.Length - $i))) }
 
       - name: Upload self-test output
         if: always()
