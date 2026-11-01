@@ -49,9 +49,14 @@ namespace RetroAmp.Media
             {
                 if (Interlocked.Decrement(ref pending) == 0)
                 {
-                    try { p.WaitForExit(); res.Exit = p.ExitCode; } catch { res.Exit = -1; }
-                    p.Dispose();
-                    tcs.TrySetResult(res);
+                    // NB: never call the parameterless WaitForExit() here — it waits for these very
+                    // stream callbacks to finish and deadlocks. Finish on a worker thread instead.
+                    Task.Run(() =>
+                    {
+                        try { p.WaitForExit(15000); res.Exit = p.HasExited ? p.ExitCode : -1; } catch { res.Exit = -1; }
+                        try { p.Dispose(); } catch { }
+                        tcs.TrySetResult(res);
+                    });
                 }
             }
             p.OutputDataReceived += (s, e) => { if (e.Data == null) Done(); else lock (res.Out) res.Out.Add(e.Data); };

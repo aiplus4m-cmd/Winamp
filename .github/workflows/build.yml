@@ -41,6 +41,17 @@ jobs:
           if (-not $done) { $p.Kill(); throw "self-test timed out" }
           if ($p.ExitCode -ne 0) { throw "self-test failed with exit code $($p.ExitCode)" }
 
+      - name: Dump screenshots (base64)
+        if: always()
+        shell: pwsh
+        run: |
+          foreach ($f in Get-ChildItem selftest-out -Filter *.png) {
+            $b = [Convert]::ToBase64String([IO.File]::ReadAllBytes($f.FullName))
+            Write-Output "PNGBEGIN $($f.Name)"
+            for ($i = 0; $i -lt $b.Length; $i += 8000) { Write-Output ("PNG|" + $b.Substring($i, [Math]::Min(8000, $b.Length - $i))) }
+            Write-Output "PNGEND $($f.Name)"
+          }
+
       - name: Upload self-test output
         if: always()
         uses: actions/upload-artifact@v4
