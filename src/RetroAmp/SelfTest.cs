@@ -22,18 +22,28 @@ namespace RetroAmp
     {
         static readonly StringBuilder Log = new StringBuilder();
         static int failures;
-        static void Ok(string m) { Log.AppendLine("OK   " + m); Console.WriteLine("OK   " + m); }
-        static void Fail(string m) { failures++; Log.AppendLine("FAIL " + m); Console.WriteLine("FAIL " + m); }
+        static string logFile;
+        static void Write(string line)
+        {
+            line = DateTime.Now.ToString("HH:mm:ss ") + line;
+            Log.AppendLine(line);
+            try { File.AppendAllText(logFile, line + Environment.NewLine); } catch { }
+        }
+        static void Ok(string m) => Write("OK   " + m);
+        static void Fail(string m) { failures++; Write("FAIL " + m); }
+        static void Step(string m) => Write("...  " + m);
 
         public static int Run(string outDir, bool online)
         {
             Directory.CreateDirectory(outDir);
+            logFile = Path.Combine(outDir, "selftest.log");
+            try { File.Delete(logFile); } catch { }
             var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             app.Startup += async (s, e) =>
             {
                 try { await RunAll(outDir, online); }
                 catch (Exception ex) { Fail("Unexpected: " + ex); }
-                File.WriteAllText(Path.Combine(outDir, "selftest.log"), Log.ToString());
+                Write(failures == 0 ? "ALL PASSED" : failures + " FAILURE(S)");
                 app.Shutdown(failures == 0 ? 0 : 1);
             };
             return app.Run();
@@ -42,6 +52,7 @@ namespace RetroAmp
         static async Task RunAll(string outDir, bool online)
         {
             string wav = Path.Combine(outDir, "test.wav");
+            Step("writing wav");
             WriteTestWav(wav, 6);
             Ok("wrote test wav");
 
@@ -49,6 +60,7 @@ namespace RetroAmp
             var dsp = await DecodeTest(wav, "wav");
 
             // ---- main window
+            Step("creating main window");
             var settings = new Settings { Scale = 1.25 };
             var player = new Player(settings);
             player.ApplyDsp();
@@ -63,6 +75,7 @@ namespace RetroAmp
             Ok("main window rendered");
 
             // ---- visualizers
+            Step("visualizers");
             var vw = new Window { Width = 800, Height = 450, WindowStyle = WindowStyle.None, ShowInTaskbar = false };
             var vis = new VisualizerView { Caption = "RetroAmp self-test" };
             vw.Content = vis;
@@ -90,6 +103,7 @@ namespace RetroAmp
             Ok("eq gain test: " + EqGainTest().ToString("0.0") + " dB at 60 Hz with +12 dB band");
 
             // ---- real audio output (may not exist on CI)
+            Step("audio output");
             try
             {
                 await player.Audio.PlayAsync(wav, 0);
@@ -100,12 +114,14 @@ namespace RetroAmp
             catch (Exception ex) { Ok("audio output not available on this machine (" + ex.Message + ")"); }
 
             if (online) await OnlineTests(outDir);
+            Step("closing windows");
             vw.Close();
             win.Close();
         }
 
         static async Task<DspChain> DecodeTest(string file, string label)
         {
+            Step("decoding " + label);
             var deck = await Task.Run(() => new Deck(file, AudioEngine.MixFormat));
             var dsp = new DspChain(deck) { Volume = 1f };
             for (int i = 0; i < 10; i++) dsp.SetBand(i, i < 2 ? 6 : 0);
@@ -123,7 +139,7 @@ namespace RetroAmp
             var buf = new float[735 * 2];
             for (int i = 0; i < frames; i++)
             {
-                int n = dsp.Read(buf, 0, buf.Length);
+                int n = await Task.Run(() => dsp.Read(buf, 0, buf.Length));
                 if (n == 0) break;
                 Analyzer.Instance.Update(1 / 60.0);
                 await Task.Delay(16);
@@ -162,6 +178,7 @@ namespace RetroAmp
         {
             try
             {
+                Step("downloading yt-dlp");
                 await Tools.InstallYtDlpAsync(null);
                 Ok("yt-dlp downloaded: " + Tools.YtDlpPath);
             }
@@ -171,9 +188,11 @@ namespace RetroAmp
             {
                 try
                 {
-                    var items = await YtDlp.ListAsync(q);
+                    Step("listing " + q);
+                    var items = await YtDlp.ListAsync(q, new CancellationTokenSource(TimeSpan.FromMinutes(2)).Token);
                     Ok($"{q}: {items.Count} results, first = {items[0].DisplayTitle} ({items[0].Location})");
                     var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+                    Step("downloading " + items[0].Location);
                     string file = await YtDlp.FetchAudioAsync(items[0], null, cts.Token);
                     Ok($"  downloaded {Path.GetFileName(file)} ({new FileInfo(file).Length / 1024} KB)");
                     await DecodeTest(file, Path.GetExtension(file));

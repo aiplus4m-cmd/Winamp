@@ -36,8 +36,9 @@ jobs:
         run: |
           $exe = "src/RetroAmp/bin/Release/net48/RetroAmp.exe"
           $p = Start-Process -FilePath $exe -ArgumentList "--selftest", "$pwd\selftest-out", "--online" -PassThru
-          if (-not $p.WaitForExit(600000)) { $p.Kill(); throw "self-test timed out" }
-          Get-Content selftest-out/selftest.log
+          $done = $p.WaitForExit(480000)
+          if (Test-Path selftest-out/selftest.log) { Get-Content selftest-out/selftest.log }
+          if (-not $done) { $p.Kill(); throw "self-test timed out" }
           if ($p.ExitCode -ne 0) { throw "self-test failed with exit code $($p.ExitCode)" }
 
       - name: Upload self-test output
