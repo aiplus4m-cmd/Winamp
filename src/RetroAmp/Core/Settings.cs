@@ -42,7 +42,9 @@ namespace RetroAmp.Core
         public bool ShowVisWindow { get; set; }
         public double WindowLeft { get; set; } = double.NaN;
         public double WindowTop { get; set; } = double.NaN;
-        public int AudioDevice { get; set; } = -1;
+        public int AudioDevice { get; set; } = -1;          // WaveOut index (compatibility mode)
+        public int OutputMode { get; set; } = 0;            // 0 WASAPI, 1 WaveOut
+        public string AudioDeviceId { get; set; } = "";   // WASAPI device id, "" = Windows default
         public int LastIndex { get; set; } = -1;
         public long CacheLimitMb { get; set; } = 1024;
         public bool AskedForYtDlp { get; set; }

@@ -1,5 +1,7 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using NAudio.Wave;
 
 namespace RetroAmp.Audio
@@ -46,6 +48,16 @@ namespace RetroAmp.Audio
         }
 
         public WaveFormat WaveFormat => source.WaveFormat;
+
+        // ---- diagnostics (read by the UI)
+        int audioThreadId;
+        readonly Stopwatch clock = Stopwatch.StartNew();
+        double lastCallMs = -1, bufferedMs;
+        public int Glitches;                 // times the output asked for audio later than the buffered audio lasted
+        public float PeakOut;                // highest output sample since last reset
+        public float MinLimiterGain = 1f;    // deepest limiter gain since last reset
+        public double MaxProcessMs;          // slowest DSP block
+        public void ResetDiagnostics() { Glitches = 0; PeakOut = 0; MinLimiterGain = 1f; MaxProcessMs = 0; }
 
         public void SetBand(int band, float db)
         {
@@ -126,6 +138,23 @@ namespace RetroAmp.Audio
 
         public int Read(float[] buffer, int offset, int count)
         {
+            // The output device's thread calls us: make it a high-priority audio thread so UI work
+            // (visualizers, lyrics, scrolling) can never starve it and cause crackles.
+            int tid = Thread.CurrentThread.ManagedThreadId;
+            if (tid != audioThreadId)
+            {
+                audioThreadId = tid;
+                try { Thread.CurrentThread.Priority = ThreadPriority.Highest; } catch { }
+            }
+            double now = clock.Elapsed.TotalMilliseconds;
+            if (lastCallMs >= 0)
+            {
+                bufferedMs -= now - lastCallMs;
+                if (bufferedMs < -15) Glitches++;     // the device ran dry before we were asked again
+                if (bufferedMs < 0) bufferedMs = 0;
+            }
+            lastCallMs = now;
+
             int n = source.Read(buffer, offset, count);
             if (eqDirty) RecalcEq();
 
@@ -183,7 +212,13 @@ namespace RetroAmp.Audio
                 float l = buffer[i] * gl, r = buffer[i + 1] * gr;
                 limiter.Process(ref l, ref r);
                 buffer[i] = l; buffer[i + 1] = r;
+                float a = Math.Max(Math.Abs(l), Math.Abs(r));
+                if (a > PeakOut) PeakOut = a;
             }
+            if (limiter.GainReduction < MinLimiterGain) MinLimiterGain = limiter.GainReduction;
+            double took = clock.Elapsed.TotalMilliseconds - now;
+            if (took > MaxProcessMs) MaxProcessMs = took;
+            bufferedMs += n / 2.0 / sampleRate * 1000.0;
             return n;
         }
 

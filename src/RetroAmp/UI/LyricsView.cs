@@ -68,7 +68,7 @@ namespace RetroAmp.UI
             {
                 if (y >= tops[i] - LineGap / 2 && y < tops[i] + cache[i].Height + LineGap / 2)
                 {
-                    player.Seek(ly.Lines[i].Time - TimeSpan.FromMilliseconds(ly.OffsetMs) + TimeSpan.FromMilliseconds(player.UsingMedia ? 0 : 170));
+                    player.Seek(ly.Lines[i].Time - TimeSpan.FromMilliseconds(ly.OffsetMs) + TimeSpan.FromMilliseconds(player.UsingMedia ? 0 : player.Audio.LatencyMs));
                     userScroll = 0;
                     e.Handled = true;
                     return;

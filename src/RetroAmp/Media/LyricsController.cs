@@ -77,7 +77,7 @@ namespace RetroAmp.Media
             get
             {
                 var t = player.Position;
-                if (!player.UsingMedia) t -= TimeSpan.FromMilliseconds(170);
+                if (!player.UsingMedia) t -= TimeSpan.FromMilliseconds(player.Audio.LatencyMs);
                 if (Current != null) t += TimeSpan.FromMilliseconds(Current.OffsetMs);
                 return t;
             }

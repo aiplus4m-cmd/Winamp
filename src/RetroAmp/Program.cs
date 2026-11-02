@@ -34,6 +34,8 @@ namespace RetroAmp
                     if (SendToRunningInstance(args)) return 0;
                 }
 
+                // avoid long blocking garbage collections that could interrupt the audio thread
+                try { System.Runtime.GCSettings.LatencyMode = System.Runtime.GCLatencyMode.SustainedLowLatency; } catch { }
                 var app = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
                 app.DispatcherUnhandledException += (s, e) =>
                 {

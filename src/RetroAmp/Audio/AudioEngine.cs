@@ -3,28 +3,49 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using NAudio.CoreAudioApi;
 using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
 using RetroAmp.Core;
 
 namespace RetroAmp.Audio
 {
+    public enum OutputMode { Wasapi = 0, WaveOut = 1 }
+
+    public sealed class AudioDeviceInfo
+    {
+        public string Id;
+        public string Name;
+        public override string ToString() => Name;
+    }
+
     /// <summary>
     /// Persistent output device + mixer + DSP. Tracks are opened as decks; crossfades are done by
     /// fading the outgoing deck while the new one fades in.
+    /// Output goes through WASAPI shared mode at the device's own sample rate (like browsers and
+    /// modern players), with legacy WaveOut as a fallback / compatibility mode.
     /// </summary>
     public sealed class AudioEngine : IDisposable
     {
-        public static readonly WaveFormat MixFormat = WaveFormat.CreateIeeeFloatWaveFormat(44100, 2);
+        /// <summary>Internal mixing format = the default device's native rate, so Windows never has to resample.</summary>
+        public static readonly WaveFormat MixFormat = WaveFormat.CreateIeeeFloatWaveFormat(DetectDeviceRate(), 2);
 
         readonly SynchronizationContext ui;
         readonly Mixer mixer;
         public readonly DspChain Dsp;
-        WaveOutEvent output;
+        IWavePlayer output;
         Deck current;
-        int deviceNumber = -1;
+        OutputMode mode = OutputMode.Wasapi;
+        string deviceId = "";
+        int waveOutDevice = -1;
+        bool reopening;
 
         public event Action TrackEnded;
         public event Action<string> OutputError;
+
+        public string OutputDescription { get; private set; } = "(not started)";
+        /// <summary>Approximate delay between decoding and hearing, for lyrics/visual sync.</summary>
+        public int LatencyMs { get; private set; } = 180;
 
         public AudioEngine()
         {
@@ -34,76 +55,119 @@ namespace RetroAmp.Audio
             Dsp = new DspChain(mixer);
         }
 
+        static int DetectDeviceRate()
+        {
+            try
+            {
+                using (var en = new MMDeviceEnumerator())
+                using (var dev = en.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia))
+                {
+                    int r = dev.AudioClient.MixFormat.SampleRate;
+                    if (r >= 32000 && r <= 192000) return r;
+                }
+            }
+            catch { }
+            return 44100;
+        }
+
         public bool HasTrack => current != null;
         public bool IsPaused { get; private set; }
         public Deck Current => current;
         public TimeSpan Position => current?.Position ?? TimeSpan.Zero;
         public TimeSpan Duration => current?.Duration ?? TimeSpan.Zero;
 
-        public static List<string> GetDevices()
+        public static List<AudioDeviceInfo> GetDevices()
         {
-            var list = new List<string>();
+            var list = new List<AudioDeviceInfo>();
             try
             {
-                int n = waveOutGetNumDevs();
-                for (int i = 0; i < n; i++)
-                {
-                    var caps = new WaveOutCapsW();
-                    if (waveOutGetDevCapsW((IntPtr)i, ref caps, Marshal.SizeOf(typeof(WaveOutCapsW))) == 0) list.Add(caps.szPname);
-                    else list.Add("Device " + (i + 1));
-                }
+                using (var en = new MMDeviceEnumerator())
+                    foreach (var d in en.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
+                        list.Add(new AudioDeviceInfo { Id = d.ID, Name = d.FriendlyName });
             }
             catch { }
             return list;
         }
 
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        struct WaveOutCapsW
+        /// <summary>Selects output: WASAPI device id ("" = Windows default) or legacy WaveOut.</summary>
+        public void Configure(OutputMode m, string wasapiDeviceId, int waveOutIndex)
         {
-            public ushort wMid, wPid;
-            public uint vDriverVersion;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string szPname;
-            public uint dwFormats;
-            public ushort wChannels, wReserved1;
-            public uint dwSupport;
-        }
-        [DllImport("winmm.dll")] static extern int waveOutGetNumDevs();
-        [DllImport("winmm.dll", CharSet = CharSet.Unicode)] static extern int waveOutGetDevCapsW(IntPtr id, ref WaveOutCapsW caps, int size);
-
-        public int DeviceNumber
-        {
-            get => deviceNumber;
-            set
+            mode = m; deviceId = wasapiDeviceId ?? ""; waveOutDevice = waveOutIndex;
+            if (output != null)
             {
-                if (value == deviceNumber) return;
-                deviceNumber = value;
-                if (output != null)
-                {
-                    bool wasPlaying = output.PlaybackState == PlaybackState.Playing;
-                    DisposeOutput();
-                    EnsureOutput();
-                    if (wasPlaying) output.Play();
-                }
+                bool wasPlaying = output.PlaybackState == PlaybackState.Playing;
+                DisposeOutput();
+                EnsureOutput();
+                if (wasPlaying) output.Play();
             }
         }
 
         void EnsureOutput()
         {
             if (output != null) return;
-            output = new WaveOutEvent { DeviceNumber = deviceNumber, DesiredLatency = 140, NumberOfBuffers = 3 };
-            output.PlaybackStopped += (s, e) =>
+            var provider = new SampleToWaveProvider(Dsp);
+            if (mode == OutputMode.Wasapi)
             {
-                if (e.Exception != null) OutputError?.Invoke(e.Exception.Message);
+                MMDevice dev = null;
+                try
+                {
+                    using (var en = new MMDeviceEnumerator())
+                    {
+                        if (!string.IsNullOrEmpty(deviceId)) { try { dev = en.GetDevice(deviceId); } catch { dev = null; } }
+                        if (dev == null || dev.State != DeviceState.Active) dev = en.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+                    }
+                    var w = new WasapiOut(dev, AudioClientShareMode.Shared, true, 200);
+                    w.Init(provider);
+                    HookStopped(w);
+                    output = w;
+                    var mf = dev.AudioClient.MixFormat;
+                    OutputDescription = "WASAPI shared · " + dev.FriendlyName + " · device " + mf.SampleRate + " Hz / " + mf.Channels + " ch · RetroAmp mixes at " + MixFormat.SampleRate + " Hz";
+                    LatencyMs = 200;
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    AppPaths.Log("WASAPI output failed, falling back to WaveOut: " + ex.Message);
+                }
+            }
+            var wo = new WaveOutEvent { DeviceNumber = waveOutDevice, DesiredLatency = 300, NumberOfBuffers = 4 };
+            wo.Init(provider);
+            HookStopped(wo);
+            output = wo;
+            OutputDescription = "WaveOut (compatibility) · device #" + waveOutDevice + " · " + MixFormat.SampleRate + " Hz";
+            LatencyMs = 260;
+        }
+
+        void HookStopped(IWavePlayer p)
+        {
+            p.PlaybackStopped += (s, e) =>
+            {
+                if (e.Exception == null || reopening) return;
+                AppPaths.Log("Output stopped: " + e.Exception.Message);
+                // e.g. headphones unplugged / default device changed: reopen on the current default device
+                ui.Post(_ =>
+                {
+                    if (output != p) return;
+                    reopening = true;
+                    try
+                    {
+                        DisposeOutput();
+                        EnsureOutput();
+                        if (current != null && !IsPaused) output.Play();
+                    }
+                    catch (Exception ex) { OutputError?.Invoke(ex.Message); }
+                    finally { reopening = false; }
+                }, null);
             };
-            output.Init(Dsp);
         }
 
         void DisposeOutput()
         {
             if (output == null) return;
-            try { output.Stop(); } catch { }
-            try { output.Dispose(); } catch { }
+            var o = output;
             output = null;
+            try { o.Stop(); } catch { }
+            try { o.Dispose(); } catch { }
         }
 
         /// <summary>Opens a file/URL on a worker thread and starts it. Throws if it can't be decoded.</summary>
@@ -171,5 +235,36 @@ namespace RetroAmp.Audio
             Stop();
             DisposeOutput();
         }
+
+        // ---- legacy WaveOut device names (compatibility mode)
+        public static List<string> GetWaveOutDevices()
+        {
+            var list = new List<string>();
+            try
+            {
+                int n = waveOutGetNumDevs();
+                for (int i = 0; i < n; i++)
+                {
+                    var caps = new WaveOutCapsW();
+                    if (waveOutGetDevCapsW((IntPtr)i, ref caps, Marshal.SizeOf(typeof(WaveOutCapsW))) == 0) list.Add(caps.szPname);
+                    else list.Add("Device " + (i + 1));
+                }
+            }
+            catch { }
+            return list;
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        struct WaveOutCapsW
+        {
+            public ushort wMid, wPid;
+            public uint vDriverVersion;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string szPname;
+            public uint dwFormats;
+            public ushort wChannels, wReserved1;
+            public uint dwSupport;
+        }
+        [DllImport("winmm.dll")] static extern int waveOutGetNumDevs();
+        [DllImport("winmm.dll", CharSet = CharSet.Unicode)] static extern int waveOutGetDevCapsW(IntPtr id, ref WaveOutCapsW caps, int size);
     }
 }

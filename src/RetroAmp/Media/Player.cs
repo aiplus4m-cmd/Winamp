@@ -60,7 +60,7 @@ namespace RetroAmp.Media
                 StateChanged?.Invoke();
             };
             ApplyVolume();
-            Audio.DeviceNumber = settings.AudioDevice;
+            Audio.Configure((OutputMode)settings.OutputMode, settings.AudioDeviceId, settings.AudioDevice);
         }
 
         void Renumber()

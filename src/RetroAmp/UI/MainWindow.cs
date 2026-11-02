@@ -953,17 +953,21 @@ namespace RetroAmp.UI
             rem.Click += (o, e) => { s.ShowRemaining = !s.ShowRemaining; lcd.ShowRemaining = s.ShowRemaining; };
             opt.Items.Add(rem);
             var dev = new MenuItem { Header = "Audio output device" };
-            var devs = AudioEngine.GetDevices();
-            var dm = new MenuItem { Header = "Windows default", IsCheckable = true, IsChecked = s.AudioDevice < 0 };
-            dm.Click += (o, e) => SetDevice(-1);
+            var dm = new MenuItem { Header = "Windows default", IsCheckable = true, IsChecked = s.OutputMode == 0 && string.IsNullOrEmpty(s.AudioDeviceId) };
+            dm.Click += (o, e) => SetOutput(0, "", -1);
             dev.Items.Add(dm);
-            for (int i = 0; i < devs.Count; i++)
+            foreach (var d in AudioEngine.GetDevices())
             {
-                int k = i;
-                var mi = new MenuItem { Header = devs[i], IsCheckable = true, IsChecked = s.AudioDevice == i };
-                mi.Click += (o, e) => SetDevice(k);
+                var dd = d;
+                var mi = new MenuItem { Header = d.Name, IsCheckable = true, IsChecked = s.OutputMode == 0 && s.AudioDeviceId == d.Id };
+                mi.Click += (o, e) => SetOutput(0, dd.Id, -1);
                 dev.Items.Add(mi);
             }
+            dev.Items.Add(new Separator());
+            var compat = new MenuItem { Header = "Compatibility mode (WaveOut)", IsCheckable = true, IsChecked = s.OutputMode == 1, ToolTip = "Old Windows audio path. Only use it if the normal mode does not work." };
+            compat.Click += (o, e) => SetOutput(s.OutputMode == 1 ? 0 : 1, s.AudioDeviceId, s.AudioDevice);
+            dev.Items.Add(compat);
+            dev.Items.Add(MI("Audio diagnostics…", ShowAudioDiagnostics));
             opt.Items.Add(dev);
             m.Items.Add(opt);
 
@@ -1007,10 +1011,20 @@ namespace RetroAmp.UI
             m.IsOpen = true;
         }
 
-        void SetDevice(int i)
+        void SetOutput(int mode, string id, int waveOut)
         {
-            s.AudioDevice = i;
-            try { player.Audio.DeviceNumber = i; } catch (Exception ex) { player.ShowStatus("Device error: " + ex.Message, 5); }
+            s.OutputMode = mode; s.AudioDeviceId = id ?? ""; s.AudioDevice = waveOut;
+            try
+            {
+                player.Audio.Configure((OutputMode)mode, s.AudioDeviceId, waveOut);
+                player.ShowStatus(mode == 0 ? "Output: WASAPI" : "Output: WaveOut (compatibility)", 2);
+            }
+            catch (Exception ex) { player.ShowStatus("Device error: " + ex.Message, 5); }
+        }
+
+        void ShowAudioDiagnostics()
+        {
+            new AudioDiagnosticsWindow(player) { Owner = this }.Show();
         }
 
         void ToggleTopmost()

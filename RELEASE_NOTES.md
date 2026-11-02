@@ -1,6 +1,13 @@
 ## RetroAmp — trình nghe nhạc & xem phim phong cách cổ điển
 Phát triển bởi **NhảmStudio** · https://topvl.net
 
+**Mới trong 1.1.2 — sửa rè/lụp bụp trên laptop**
+- Xuất âm qua **WASAPI** (giống trình duyệt, Windows Media Player, VLC) thay cho WaveOut cũ, ở đúng tần số lấy mẫu của loa (thường 48 kHz) → Windows không phải chuyển đổi thêm.
+- Bộ đệm lớn hơn, luồng âm thanh ưu tiên cao, giảm thời gian dừng của bộ dọn bộ nhớ → giao diện/visualizer/lyrics không thể làm ngắt âm.
+- Tự kết nối lại khi rút/cắm tai nghe hoặc đổi thiết bị mặc định.
+- **Options → Audio output device → Audio diagnostics…**: xem trực tiếp đường xuất âm, mức đỉnh, limiter và số lần bị ngắt quãng.
+- Chế độ **Compatibility mode (WaveOut)** để dự phòng.
+
 **Mới trong 1.1.1 — sửa vỡ tiếng / rè khi mở to**
 - Thay bộ "soft clipper" (bẻ méo mọi mẫu trên −1,4 dB) bằng limiter look-ahead trong suốt: nhạc rock/EDM master to không còn bị rè.
 - Sửa EQ: các băng 12k/14k/16k chồng nhau làm preset Rock thực tế tăng tới +24,7 dB → nay đường EQ khớp đúng vị trí thanh trượt.
