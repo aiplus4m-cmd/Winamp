@@ -10,7 +10,9 @@
 <p align="center">
   <img src="assets/screenshots/main-window.png" width="420" alt="RetroAmp main window">
   <img src="assets/screenshots/speakers.png" width="420" alt="Speakers visualizer"><br>
-  <img src="assets/screenshots/visualizers.png" width="560" alt="Other visualizers">
+  <img src="assets/screenshots/visualizers.png" width="560" alt="Other visualizers"><br>
+  <img src="assets/screenshots/lyrics.png" width="300" alt="Synced lyrics">
+  <img src="assets/screenshots/skins.png" width="560" alt="Skins">
 </p>
 
 ## Tải về

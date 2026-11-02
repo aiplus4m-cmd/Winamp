@@ -540,8 +540,8 @@ namespace RetroAmp.UI
             var yt = RetroButton.Make(GlyphKind.None, "▶ YT / SC", "Add a YouTube / SoundCloud link or search (Ctrl+U)", 76, 20, () => OpenUrlDialog());
             foreach (var b in new[] { add, rem, misc, lst, yt }) { b.Margin = new Thickness(0, 0, 3, 0); btns.Children.Add(b); }
             bar.Children.Add(btns);
-            plInfo = new TextBlock { Foreground = Theme.LcdText, FontFamily = Theme.LcdFont, FontSize = 11, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 14, 0) };
-            bar.Children.Add(plInfo);
+            plInfo = new TextBlock { Foreground = Theme.LcdText, FontFamily = Theme.LcdFont, FontSize = 11, Padding = new Thickness(5, 1, 5, 1) };
+            bar.Children.Add(new Border { Background = Theme.LcdBg, BorderBrush = Theme.BevelDark, BorderThickness = new Thickness(1), Child = plInfo, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 14, 0) });
             var grip = new ResizeGrip(this, g);
             grip.HorizontalAlignment = HorizontalAlignment.Right;
             grip.VerticalAlignment = VerticalAlignment.Bottom;

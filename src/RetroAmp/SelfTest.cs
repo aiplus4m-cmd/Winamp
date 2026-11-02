@@ -126,7 +126,7 @@ namespace RetroAmp
             string m3u = Path.Combine(outDir, "test.m3u8");
             PlaylistIO.Save(m3u, player.Items);
             var back = PlaylistIO.Load(m3u);
-            if (back.Count == 3 && back[1].Kind == ItemKind.OnlineStream) Ok("m3u8 round trip"); else Fail("m3u8 round trip");
+            if (back.Count == player.Items.Count && back[1].Kind == ItemKind.OnlineStream) Ok("m3u8 round trip"); else Fail("m3u8 round trip");
 
             // ---- equalizer response sanity: +12 dB at 60 Hz must boost a 60 Hz sine
             Ok("eq gain test: " + EqGainTest().ToString("0.0") + " dB at 60 Hz with +12 dB band");
