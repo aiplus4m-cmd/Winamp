@@ -93,6 +93,35 @@ namespace RetroAmp
             if (a.Bands.Max() > 0.2f && a.LevelL > 0.02f) Ok($"analyzer sees signal (max band {a.Bands.Max():0.00}, level {a.LevelL:0.00}, bass {a.Bass:0.00})");
             else Fail($"analyzer saw no signal (max band {a.Bands.Max():0.00})");
 
+            // ---- skins
+            Step("skins");
+            foreach (var skin in Skins.BuiltIn)
+            {
+                win.ApplySkin(skin);
+                await Pump(dsp, 20);
+                Save((FrameworkElement)win.Content, Path.Combine(outDir, "skin-" + Safe(skin.Name) + ".png"));
+            }
+            win.ApplySkin(Skins.BuiltIn[0]);
+            Ok("skins rendered: " + Skins.BuiltIn.Count);
+
+            // ---- LRC parser
+            var lrc = Lyrics.Parse("[ar:Test]\n[ti:Song]\n[offset:+250]\n[00:01.00]First line\n[00:03.50][00:10.00]Chorus <00:04.00>word\n[00:06.20]\n[00:07.00]Third", "test");
+            if (lrc.Synced && lrc.Lines.Count == 5 && lrc.OffsetMs == 250 && lrc.IndexAt(TimeSpan.FromSeconds(4)) == 1 && lrc.Lines[1].Text == "Chorus word" && lrc.IndexAt(TimeSpan.FromSeconds(11)) == 4)
+                Ok("LRC parser");
+            else Fail("LRC parser: lines=" + lrc.Lines.Count + " idx=" + lrc.IndexAt(TimeSpan.FromSeconds(4)));
+            LyricsService.GuessArtistTitle(new PlaylistItem("https://www.youtube.com/watch?v=abcdefghijk", "Sơn Tùng M-TP - Chúng Ta Của Hiện Tại (Official MV)"), out string ga, out string gt);
+            if (ga == "Sơn Tùng M-TP" && gt == "Chúng Ta Của Hiện Tại") Ok("title guess: '" + ga + "' / '" + gt + "'"); else Fail("title guess: '" + ga + "' / '" + gt + "'");
+
+            // ---- About window
+            var about = new AboutWindow();
+            about.Show();
+            await Task.Delay(300);
+            Save((FrameworkElement)about.Content, Path.Combine(outDir, "about.png"));
+            about.Close();
+            Ok("about window rendered");
+
+            if (online) await LyricsTests(outDir, win, player, dsp);
+
             // ---- playlist I/O
             string m3u = Path.Combine(outDir, "test.m3u8");
             PlaylistIO.Save(m3u, player.Items);
@@ -117,6 +146,50 @@ namespace RetroAmp
             Step("closing windows");
             vw.Close();
             win.Close();
+        }
+
+        static string Safe(string n)
+        {
+            foreach (var c in Path.GetInvalidFileNameChars()) n = n.Replace(c, '_');
+            return n.Replace(' ', '-').ToLowerInvariant();
+        }
+
+        static async Task LyricsTests(string outDir, MainWindow win, Player player, DspChain dsp)
+        {
+            Step("lyrics from LRCLIB");
+            var item = new PlaylistItem("https://www.youtube.com/watch?v=yKNxeF4KMsY", "Coldplay - Yellow (Official Video)", TimeSpan.FromSeconds(269));
+            player.AddRange(new[] { item });
+            player.MarkCurrent(item);
+            Lyrics ly = null;
+            try
+            {
+                ly = await LyricsService.FindAsync(item, TimeSpan.FromSeconds(269), true, new CancellationTokenSource(TimeSpan.FromSeconds(40)).Token);
+            }
+            catch (Exception ex) { Fail("LRCLIB: " + ex.Message); }
+            if (ly != null && !ly.IsEmpty) Ok($"LRCLIB lyrics: {ly.Artist} - {ly.Title}, {ly.Lines.Count} lines, synced={ly.Synced}");
+            else { Fail("LRCLIB returned nothing for Coldplay - Yellow"); ly = Lyrics.Parse("[00:00.00]Look at the stars\n[00:04.00]Look how they shine for you\n[00:08.00]And everything you do", "fallback"); }
+
+            var vn = new PlaylistItem("https://www.youtube.com/watch?v=psZ1g9fMfeo", "Sơn Tùng M-TP | CHÚNG TA CỦA HIỆN TẠI | OFFICIAL MUSIC VIDEO", TimeSpan.FromSeconds(301));
+            try
+            {
+                var lv = await LyricsService.FindAsync(vn, vn.Duration, true, new CancellationTokenSource(TimeSpan.FromSeconds(40)).Token);
+                Ok("Vietnamese lyrics lookup: " + (lv == null ? "not found" : lv.Artist + " - " + lv.Title + ", " + lv.Lines.Count + " lines, synced=" + lv.Synced));
+            }
+            catch (Exception ex) { Ok("Vietnamese lyrics lookup error (non-fatal): " + ex.Message); }
+
+            // show it ~1 minute into the song
+            ly.OffsetMs = 62000;
+            win.Lyrics.SetLyrics(item, ly);
+            var lw = new LyricsWindow(player, win.Lyrics, player.Settings);
+            lw.Show();
+            await Pump(dsp, 60);
+            Save((FrameworkElement)lw.Content, Path.Combine(outDir, "lyrics-window.png"));
+            var dl = new DesktopLyricsWindow(player, win.Lyrics, player.Settings);
+            dl.Show();
+            await Pump(dsp, 30);
+            Save((FrameworkElement)dl.Content, Path.Combine(outDir, "desktop-lyrics.png"));
+            dl.Close();
+            Ok("lyrics windows rendered");
         }
 
         static async Task<DspChain> DecodeTest(string file, string label)

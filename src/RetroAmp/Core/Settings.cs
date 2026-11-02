@@ -46,6 +46,14 @@ namespace RetroAmp.Core
         public long CacheLimitMb { get; set; } = 1024;
         public bool AskedForYtDlp { get; set; }
         public string CookiesBrowser { get; set; } = "";
+        public string Skin { get; set; } = "Retro Night";
+        public bool LyricsAuto { get; set; } = true;
+        public bool ShowLyricsWindow { get; set; }
+        public bool DesktopLyrics { get; set; }
+        public double DesktopLyricsLeft { get; set; } = double.NaN;
+        public double DesktopLyricsTop { get; set; } = double.NaN;
+        public double DesktopLyricsSize { get; set; } = 30;
+        public double LyricsFontSize { get; set; } = 18;
 
         public static Settings Load()
         {

@@ -17,7 +17,7 @@ namespace RetroAmp.UI
             return (T)XamlReader.Parse(withNs);
         }
 
-        public const string ScrollBarStyle = @"<Style TargetType=""ScrollBar"">
+        public static string ScrollBarStyle => Themed(@"<Style TargetType=""ScrollBar"">
   <Setter Property=""Width"" Value=""11""/>
   <Setter Property=""MinWidth"" Value=""11""/>
   <Setter Property=""Template""><Setter.Value>
@@ -33,9 +33,9 @@ namespace RetroAmp.UI
       </Border>
     </ControlTemplate>
   </Setter.Value></Setter>
-</Style>";
+</Style>");
 
-        public const string ListItemStyle = @"<Style TargetType=""ListBoxItem"">
+        public static string ListItemStyle => Themed(@"<Style TargetType=""ListBoxItem"">
   <Setter Property=""HorizontalContentAlignment"" Value=""Stretch""/>
   <Setter Property=""Padding"" Value=""3,0,3,0""/>
   <Setter Property=""Template""><Setter.Value>
@@ -49,7 +49,19 @@ namespace RetroAmp.UI
       </ControlTemplate.Triggers>
     </ControlTemplate>
   </Setter.Value></Setter>
-</Style>";
+</Style>");
+
+        static string Themed(string x)
+        {
+            var t = Theme.Current;
+            var bg = Theme.C(t.ListBg);
+            return x.Replace("#0B0D12", Theme.Hex(Theme.Mix(bg, Theme.C(t.Face2), 0.35)))
+                    .Replace("#1A1D26", Theme.Hex(Theme.Mix(bg, Theme.C(t.Face2), 0.6)))
+                    .Replace("#3C4460", t.Button2)
+                    .Replace("#5A6079", t.BevelLight)
+                    .Replace("#101828", Theme.Hex(Theme.Mix(bg, Theme.C(t.ListSelect), 0.45)))
+                    .Replace("#1A2F80", t.ListSelect);
+        }
 
         public const string PlaylistItemTemplate = @"<DataTemplate>
   <Grid>
@@ -59,11 +71,11 @@ namespace RetroAmp.UI
   </Grid>
 </DataTemplate>";
 
-        public const string ResultItemTemplate = @"<DataTemplate>
+        public static string ResultItemTemplate => @"<DataTemplate>
   <Grid>
     <Grid.ColumnDefinitions><ColumnDefinition Width=""*""/><ColumnDefinition Width=""Auto""/></Grid.ColumnDefinitions>
-    <TextBlock Text=""{Binding DisplayTitle}"" Foreground=""#00E83A"" TextTrimming=""CharacterEllipsis""/>
-    <TextBlock Grid.Column=""1"" Text=""{Binding DurationText}"" Foreground=""#00E83A"" Margin=""8,0,0,0""/>
+    <TextBlock Text=""{Binding DisplayTitle}"" Foreground=""" + Theme.Current.ListText + @""" TextTrimming=""CharacterEllipsis""/>
+    <TextBlock Grid.Column=""1"" Text=""{Binding DurationText}"" Foreground=""" + Theme.Current.ListText + @""" Margin=""8,0,0,0""/>
   </Grid>
 </DataTemplate>";
     }

@@ -16,18 +16,18 @@ namespace RetroAmp.UI
         public static TextBox TextBox(string text = "") => new TextBox
         {
             Text = text,
-            Background = Theme.B("#07090D"),
-            Foreground = Theme.B("#B8FFC4"),
-            CaretBrush = Theme.B("#B8FFC4"),
-            BorderBrush = Theme.B("#3A4258"),
-            SelectionBrush = Theme.B("#2A4FBF"),
+            Background = Theme.PlaylistBg,
+            Foreground = Theme.PlaylistText,
+            CaretBrush = Theme.PlaylistText,
+            BorderBrush = Theme.BevelDark,
+            SelectionBrush = Theme.PlaylistSelect,
             Padding = new Thickness(4, 3, 4, 3),
             FontSize = 13
         };
 
         public static TextBlock Text(string t, double size = 12, Brush b = null) => new TextBlock
         {
-            Text = t, FontSize = size, Foreground = b ?? Theme.B("#C9CEDD"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 4)
+            Text = t, FontSize = size, Foreground = b ?? Theme.LabelText, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 4)
         };
 
         public static RetroButton Button(string text, double w, Action click) =>
@@ -38,8 +38,8 @@ namespace RetroAmp.UI
         public static void Apply(Window w, string title)
         {
             w.Title = title;
-            w.Background = Theme.B("#1A1C24");
-            w.Foreground = Theme.B("#C9CEDD");
+            w.Background = Theme.PanelFace;
+            w.Foreground = Theme.LabelText;
             w.FontFamily = Theme.UiFont;
             w.ShowInTaskbar = false;
             w.WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -74,14 +74,14 @@ namespace RetroAmp.UI
             try { if (Clipboard.ContainsText()) { var c = Clipboard.GetText().Trim(); if (Util.IsUrl(c)) url.Text = c; } } catch { }
             url.KeyDown += (s, e) => { if (e.Key == Key.Enter) AddLink(true); };
             root.Children.Add(url);
-            asVideo = new CheckBox { Content = "Play as video (YouTube, Vimeo… opens the video window)", Foreground = Theme.B("#C9CEDD"), Margin = new Thickness(0, 6, 0, 6) };
+            asVideo = new CheckBox { Content = "Play as video (YouTube, Vimeo… opens the video window)", Foreground = Theme.LabelText, Margin = new Thickness(0, 6, 0, 6) };
             root.Children.Add(asVideo);
             var row1 = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 10) };
             row1.Children.Add(DialogStyle.Button("ADD & PLAY", 100, () => AddLink(true)));
             row1.Children.Add(DialogStyle.Button("ADD", 70, () => AddLink(false)));
             root.Children.Add(row1);
 
-            root.Children.Add(new Border { Height = 1, Background = Theme.B("#3A4258"), Margin = new Thickness(0, 4, 0, 8) });
+            root.Children.Add(new Border { Height = 1, Background = Theme.BevelDark, Margin = new Thickness(0, 4, 0, 8) });
             root.Children.Add(DialogStyle.Text("Or search:"));
             var row2 = new Grid();
             row2.ColumnDefinitions.Add(new ColumnDefinition());
@@ -104,8 +104,8 @@ namespace RetroAmp.UI
             {
                 Height = 230,
                 Margin = new Thickness(0, 8, 0, 8),
-                Background = Brushes.Black,
-                BorderBrush = Theme.B("#3A4258"),
+                Background = Theme.PlaylistBg,
+                BorderBrush = Theme.BevelDark,
                 SelectionMode = SelectionMode.Extended,
                 FontSize = 12,
                 ItemTemplate = Xaml.Parse<DataTemplate>(Xaml.ResultItemTemplate),

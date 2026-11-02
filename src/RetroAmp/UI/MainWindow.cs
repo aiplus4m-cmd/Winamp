@@ -34,7 +34,7 @@ namespace RetroAmp.UI
         LcdDisplay lcd;
         MarqueeDisplay marquee;
         RetroSlider seek, vol, bal;
-        RetroButton btnShuffle, btnRepeat, btnEq, btnPl, btnVis;
+        RetroButton btnShuffle, btnRepeat, btnEq, btnPl, btnVis, btnLyr;
         FrameworkElement mainPanel, eqPanel, plPanel;
 
         RetroButton eqOn, vocal;
@@ -49,6 +49,9 @@ namespace RetroAmp.UI
 
         VisualizerWindow visWin;
         VideoWindow videoWin;
+        LyricsWindow lyrWin;
+        DesktopLyricsWindow deskLyr;
+        public readonly LyricsController Lyrics;
         readonly DispatcherTimer timer;
         ThumbButtonInfo thumbPlay;
         ImageSource imgPlay, imgPause;
@@ -74,14 +77,10 @@ namespace RetroAmp.UI
             scale = new ScaleTransform(s.Scale, s.Scale);
             stack.LayoutTransform = scale;
             Content = new Border { BorderBrush = Brushes.Black, BorderThickness = new Thickness(1), Child = stack };
+            Lyrics = new LyricsController(player);
+            Lyrics.Wanted = () => (lyrWin != null && lyrWin.IsVisible) || (deskLyr != null && deskLyr.IsVisible);
 
-            mainPanel = BuildMain();
-            eqPanel = BuildEq();
-            plPanel = BuildPlaylist();
-            stack.Children.Add(mainPanel);
-            stack.Children.Add(eqPanel);
-            stack.Children.Add(plPanel);
-            ApplyPanelVisibility();
+            BuildPanels();
 
             player.EnsureYtDlp = EnsureYtDlpInteractive;
             player.TrackChanged += OnTrackChanged;
@@ -110,8 +109,41 @@ namespace RetroAmp.UI
             {
                 SetupTaskbar();
                 if (s.ShowVisWindow) ToggleVis();
+                if (s.ShowLyricsWindow) ToggleLyrics();
+                if (s.DesktopLyrics) { s.DesktopLyrics = false; ToggleDesktopLyrics(); }
                 OnTrackChanged();
             };
+        }
+
+        void BuildPanels()
+        {
+            Background = Theme.WindowBg;
+            stack.Children.Clear();
+            mainPanel = BuildMain();
+            eqPanel = BuildEq();
+            plPanel = BuildPlaylist();
+            stack.Children.Add(mainPanel);
+            stack.Children.Add(eqPanel);
+            stack.Children.Add(plPanel);
+            ApplyPanelVisibility();
+            if (btnVis != null) btnVis.IsChecked = visWin != null && visWin.IsVisible;
+            if (btnLyr != null) btnLyr.IsChecked = lyrWin != null && lyrWin.IsVisible;
+        }
+
+        /// <summary>Switches skin live: re-creates the panels and repaints every other window.</summary>
+        public void ApplySkin(ThemeDef t)
+        {
+            Theme.Apply(t);
+            s.Skin = t.Name;
+            string q = search?.Text;
+            BuildPanels();
+            if (!string.IsNullOrEmpty(q)) search.Text = q;
+            foreach (var it in player.Items) it.RefreshBrush();
+            if (visWin != null) { visWin.Background = Theme.WindowBg; Theme.InvalidateTree(visWin); }
+            lyrWin?.ApplyTheme();
+            if (deskLyr != null) Theme.InvalidateTree(deskLyr);
+            OnTrackChanged();
+            player.ShowStatus("Skin: " + t.Name, 2);
         }
 
         static ImageSource LoadIcon()
@@ -180,20 +212,25 @@ namespace RetroAmp.UI
             c.Children.Add(RetroButton.Make(GlyphKind.Next, null, "Next (B)", 32, bh, player.Next).At(136, y));
             c.Children.Add(RetroButton.Make(GlyphKind.Eject, null, "Open files (L)", 28, bh, OpenFiles).At(174, y));
 
-            btnShuffle = RetroButton.Make(GlyphKind.None, "SHUFFLE", "Shuffle (S)", 62, bh, ToggleShuffle, true);
+            btnShuffle = RetroButton.Make(GlyphKind.None, "SHUFFLE", "Shuffle (S)", 58, bh, ToggleShuffle, true);
             btnShuffle.IsChecked = s.Shuffle;
-            c.Children.Add(btnShuffle.At(208, y));
-            btnRepeat = RetroButton.Make(GlyphKind.None, "REPEAT", "Repeat: off / all / one (R)", 62, bh, CycleRepeat, true);
-            c.Children.Add(btnRepeat.At(272, y));
+            btnShuffle.FontSize = 8.5;
+            c.Children.Add(btnShuffle.At(206, y));
+            btnRepeat = RetroButton.Make(GlyphKind.None, "REPEAT", "Repeat: off / all / one (R)", 58, bh, CycleRepeat, true);
+            btnRepeat.FontSize = 8.5;
+            c.Children.Add(btnRepeat.At(266, y));
             UpdateRepeatButton();
 
             btnEq = RetroButton.Make(GlyphKind.None, "EQ", "Equalizer & effects (E)", 38, bh, () => { s.ShowEq = !s.ShowEq; ApplyPanelVisibility(); }, true);
             btnPl = RetroButton.Make(GlyphKind.None, "PL", "Playlist (P)", 38, bh, () => { s.ShowPlaylist = !s.ShowPlaylist; ApplyPanelVisibility(); }, true);
             btnVis = RetroButton.Make(GlyphKind.None, "VIS", "Visualizer window (K)", 42, bh, ToggleVis, true);
-            c.Children.Add(btnEq.At(338, y));
-            c.Children.Add(btnPl.At(372 + 2, y));
-            c.Children.Add(btnVis.At(410, y));
-            btnEq.Width = 34; btnPl.Width = 34; btnVis.Width = 42;
+            btnLyr = RetroButton.Make(GlyphKind.None, "LRC", "Lyrics (Y) · desktop lyrics (Shift+Y)", 34, bh, ToggleLyrics, true);
+            foreach (var b in new[] { btnEq, btnPl, btnLyr, btnVis }) { b.FontSize = 8.5; b.Width = 30; }
+            btnVis.Width = 32;
+            c.Children.Add(btnEq.At(328, y));
+            c.Children.Add(btnPl.At(359, y));
+            c.Children.Add(btnLyr.At(390, y));
+            c.Children.Add(btnVis.At(421, y));
 
             c.MouseLeftButtonDown += (o, e) => { if (e.OriginalSource is PanelFace) { try { DragMove(); } catch { } } };
             c.MouseRightButtonUp += (o, e) => { if (e.OriginalSource is PanelFace || e.OriginalSource is MarqueeDisplay) ShowMainMenu(); };
@@ -870,6 +907,23 @@ namespace RetroAmp.UI
             m.Items.Add(new Separator());
             m.Items.Add(MI("Visualizer window", ToggleVis, "K"));
             m.Items.Add(MI("Video window", ShowVideo));
+            m.Items.Add(MI("Lyrics window", ToggleLyrics, "Y"));
+            var dl = new MenuItem { Header = "Desktop lyrics", IsCheckable = true, IsChecked = s.DesktopLyrics, InputGestureText = "Shift+Y" };
+            dl.Click += (o, e) => ToggleDesktopLyrics();
+            m.Items.Add(dl);
+
+            var skins = new MenuItem { Header = "Skins" };
+            foreach (var t in Skins.All())
+            {
+                var tt = t;
+                var mi = new MenuItem { Header = t.Name + (string.IsNullOrEmpty(t.Author) || t.Author == "RetroAmp" ? "" : "  — " + t.Author), IsCheckable = true, IsChecked = Theme.Current.Name == t.Name };
+                mi.Click += (o, e) => ApplySkin(tt);
+                skins.Items.Add(mi);
+            }
+            skins.Items.Add(new Separator());
+            skins.Items.Add(MI("Create my own skin from the current one…", CreateSkinTemplate));
+            skins.Items.Add(MI("Open skins folder", () => { try { Directory.CreateDirectory(Skins.UserFolder); Process.Start("explorer.exe", "\"" + Skins.UserFolder + "\""); } catch { } }));
+            m.Items.Add(skins);
 
             var opt = new MenuItem { Header = "Options" };
             var top = new MenuItem { Header = "Always on top", IsCheckable = true, IsChecked = s.AlwaysOnTop, InputGestureText = "Ctrl+T" };
@@ -935,7 +989,7 @@ namespace RetroAmp.UI
             m.Items.Add(online);
             m.Items.Add(new Separator());
             m.Items.Add(MI("Keyboard shortcuts", ShowShortcuts, "F1"));
-            m.Items.Add(MI("About RetroAmp", ShowAbout));
+            m.Items.Add(MI("About RetroAmp · NhảmStudio", ShowAbout));
             m.Items.Add(new Separator());
             m.Items.Add(MI("Exit", Close, "Alt+F4"));
             m.PlacementTarget = this;
@@ -963,6 +1017,7 @@ namespace RetroAmp.UI
                 "←/→  seek 5 s      ↑/↓  volume\n" +
                 "S  shuffle         R  repeat\n" +
                 "E  equalizer       P  playlist      K  visualizer\n" +
+                "Y  lyrics          Shift+Y  desktop lyrics\n" +
                 "L  add files       Shift+L  add folder\n" +
                 "Ctrl+U  add YouTube / SoundCloud link or search\n" +
                 "Ctrl+F  search playlist     Ctrl+S  save playlist\n" +
@@ -974,19 +1029,27 @@ namespace RetroAmp.UI
 
         void ShowAbout()
         {
-            var v = Assembly.GetExecutingAssembly().GetName().Version;
-            MessageBox.Show(this,
-                "RetroAmp " + v.Major + "." + v.Minor + "." + v.Build + "\n" +
-                "A lightweight retro-style music & video player.\n\n" +
-                "• Local audio: MP3, FLAC, M4A/AAC, WMA, WAV, OGG/Opus*\n" +
-                "• Video: MP4, MKV, AVI, WMV, MOV, WebM* (Windows codecs)\n" +
-                "• YouTube & SoundCloud via yt-dlp\n" +
-                "• 10-band EQ, presets, reverb, stereo width, karaoke, crossfade\n" +
-                "• Visualizers: spectrum, scope, speakers & VU meters, radial, starfield\n\n" +
-                "* some formats need the free Microsoft Store codec extensions.\n\n" +
-                "Data folder: " + AppPaths.DataDir + (AppPaths.IsPortable ? "  (portable mode)" : "") + "\n\n" +
-                "Audio engine: NAudio · Tags: TagLib# · Online: yt-dlp\nMIT License",
-                "About RetroAmp", MessageBoxButton.OK, MessageBoxImage.Information);
+            new AboutWindow { Owner = this }.ShowDialog();
+        }
+
+        void CreateSkinTemplate()
+        {
+            var dlg = new InputDialog("New skin", "Name of your skin (a .ini file is created that you can edit with Notepad):", "My Skin") { Owner = this };
+            if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.Value)) return;
+            try
+            {
+                string name = dlg.Value.Trim();
+                foreach (var ch in Path.GetInvalidFileNameChars()) name = name.Replace(ch, '_');
+                Directory.CreateDirectory(Skins.UserFolder);
+                var t = Theme.Current.Clone();
+                t.Name = dlg.Value.Trim(); t.Author = Environment.UserName;
+                string file = Path.Combine(Skins.UserFolder, name + ".ini");
+                File.WriteAllText(file, t.ToIni(), new System.Text.UTF8Encoding(false));
+                ApplySkin(Skins.Find(t.Name));
+                Process.Start("notepad.exe", "\"" + file + "\"");
+                player.ShowStatus("Edit the colours, save, then pick the skin again from Menu → Skins", 8);
+            }
+            catch (Exception ex) { MessageBox.Show(this, ex.Message, "RetroAmp"); }
         }
 
         // =====================================================================================
@@ -1003,6 +1066,31 @@ namespace RetroAmp.UI
             visWin.Show();
             visWin.Activate();
             s.ShowVisWindow = true;
+        }
+
+        void ToggleLyrics()
+        {
+            if (lyrWin == null)
+            {
+                lyrWin = new LyricsWindow(player, Lyrics, s) { ToggleDesktop = ToggleDesktopLyrics };
+                lyrWin.IsVisibleChanged += (o, e) => { if (btnLyr != null) btnLyr.IsChecked = lyrWin.IsVisible; };
+                if (!double.IsNaN(Left)) { lyrWin.Left = Left + ActualWidth + 4; lyrWin.Top = Top; }
+            }
+            if (lyrWin.IsVisible) { lyrWin.Close(); return; }
+            lyrWin.Show();
+            lyrWin.Activate();
+            s.ShowLyricsWindow = true;
+            Lyrics.EnsureLoaded();
+        }
+
+        void ToggleDesktopLyrics()
+        {
+            if (deskLyr == null) deskLyr = new DesktopLyricsWindow(player, Lyrics, s);
+            if (deskLyr.IsVisible) { deskLyr.Hide(); s.DesktopLyrics = false; player.ShowStatus("Desktop lyrics off", 1.5); return; }
+            deskLyr.Show();
+            s.DesktopLyrics = true;
+            Lyrics.EnsureLoaded();
+            player.ShowStatus("Desktop lyrics on — drag to move, wheel to resize", 3);
         }
 
         void ShowVideo()
@@ -1130,6 +1218,7 @@ namespace RetroAmp.UI
                 case Key.E: s.ShowEq = !s.ShowEq; ApplyPanelVisibility(); break;
                 case Key.P: s.ShowPlaylist = !s.ShowPlaylist; ApplyPanelVisibility(); break;
                 case Key.K: ToggleVis(); break;
+                case Key.Y: if (shift) ToggleDesktopLyrics(); else ToggleLyrics(); break;
                 case Key.F1: ShowShortcuts(); break;
                 case Key.Left: if (inList) return; player.Seek(Max0(player.Position - TimeSpan.FromSeconds(5))); break;
                 case Key.Right: if (inList) return; player.Seek(player.Position + TimeSpan.FromSeconds(5)); break;
@@ -1199,6 +1288,8 @@ namespace RetroAmp.UI
                 if (WindowState == WindowState.Normal) { s.WindowLeft = Left; s.WindowTop = Top; }
                 s.LastIndex = player.Current != null ? player.Items.IndexOf(player.Current) : -1;
                 s.ShowVisWindow = visWin != null && visWin.IsVisible;
+                s.ShowLyricsWindow = lyrWin != null && lyrWin.IsVisible;
+                if (deskLyr != null && deskLyr.IsVisible) { s.DesktopLyricsLeft = deskLyr.Left; s.DesktopLyricsTop = deskLyr.Top; }
                 PlaylistIO.Save(AppPaths.LastPlaylistFile, player.Items);
                 s.Save();
             }
@@ -1206,6 +1297,8 @@ namespace RetroAmp.UI
             timer.Stop();
             try { visWin?.Close(); } catch { }
             try { videoWin?.Close(); } catch { }
+            try { lyrWin?.Close(); } catch { }
+            try { deskLyr?.Close(); } catch { }
             player.Dispose();
         }
     }

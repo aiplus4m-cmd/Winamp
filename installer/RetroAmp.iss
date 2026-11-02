@@ -1,6 +1,6 @@
-; Inno Setup script for RetroAmp
+﻿; Inno Setup script for RetroAmp
 #ifndef AppVersion
-  #define AppVersion "1.0.0"
+  #define AppVersion "1.1.0"
 #endif
 #ifndef SourceDir
   #define SourceDir "..\src\RetroAmp\bin\Release\net48"
@@ -11,8 +11,9 @@ AppId={{6B7C2D9E-3F41-4C2B-9A1E-52A7D3E0F1A4}
 AppName=RetroAmp
 AppVersion={#AppVersion}
 AppVerName=RetroAmp {#AppVersion}
-AppPublisher=RetroAmp contributors
-AppPublisherURL=https://github.com/aiplus4m-cmd/Winamp
+AppPublisher=NhảmStudio
+AppPublisherURL=https://topvl.net
+AppSupportURL=https://github.com/aiplus4m-cmd/Winamp
 DefaultDirName={autopf}\RetroAmp
 DefaultGroupName=RetroAmp
 UninstallDisplayIcon={app}\RetroAmp.exe

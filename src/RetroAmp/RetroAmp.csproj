@@ -15,10 +15,12 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <Prefer32Bit>false</Prefer32Bit>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Product>RetroAmp</Product>
     <Description>RetroAmp - a lightweight retro media player</Description>
-    <Copyright>MIT License</Copyright>
+    <Copyright>NhảmStudio · MIT License</Copyright>
+    <Company>NhảmStudio</Company>
+    <Authors>NhảmStudio</Authors>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
     <DebugType>embedded</DebugType>
@@ -43,9 +45,11 @@
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Runtime.Serialization" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="..\..\assets\retroamp.ico" LogicalName="RetroAmp.icon.ico" />
+    <EmbeddedResource Include="..\..\assets\nhamstudio-logo.png" LogicalName="RetroAmp.nhamstudio.png" />
   </ItemGroup>
 </Project>

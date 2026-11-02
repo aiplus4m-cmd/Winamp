@@ -46,6 +46,7 @@ namespace RetroAmp
 
                 var settings = Settings.Load();
                 YtDlp.CookiesBrowser = settings.CookiesBrowser ?? "";
+                try { Theme.Apply(Skins.Find(settings.Skin)); } catch (Exception ex) { AppPaths.Log("Skin: " + ex.Message); }
                 TagLoader.Init(app.Dispatcher);
                 var player = new Player(settings);
                 player.ApplyDsp();

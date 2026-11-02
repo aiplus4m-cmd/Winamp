@@ -92,5 +92,6 @@ namespace RetroAmp.Media
         public Brush ForeBrush => isCurrent ? UI.Theme.PlaylistCurrent : (failed ? UI.Theme.PlaylistFailed : UI.Theme.PlaylistText);
 
         public void RefreshDisplay() { On(nameof(Display)); On(nameof(DurationText)); }
+        public void RefreshBrush() => On(nameof(ForeBrush));
     }
 }
