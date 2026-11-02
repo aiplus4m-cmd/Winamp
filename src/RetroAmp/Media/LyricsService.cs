@@ -119,10 +119,13 @@ namespace RetroAmp.Media
             if (title.Length == 0) return null;
             if (duration <= TimeSpan.Zero) duration = item.Duration;
 
+            int errorsBefore = networkErrors;
             var best = await LookupAsync(artist, title, duration, ct);
             if (best == null || !best.HasAny)
             {
-                try { File.WriteAllText(none, artist + " - " + title); } catch { }
+                // only remember "not found" when the server really answered; a network hiccup must not block retries
+                if (networkErrors == errorsBefore) { try { File.WriteAllText(none, artist + " - " + title); } catch { } }
+                else throw new Exception("lyrics server unreachable, try again later");
                 return null;
             }
             return SaveFromLrcLib(item, best);
@@ -227,20 +230,32 @@ namespace RetroAmp.Media
             return sb.ToString();
         }
 
+        static int networkErrors;
+
         static async Task<T> GetJson<T>(string url, CancellationToken ct) where T : class
         {
-            try
+            for (int attempt = 0; attempt < 3; attempt++)
             {
-                using (var resp = await Http.GetAsync(url, ct).ConfigureAwait(false))
+                try
                 {
-                    if (!resp.IsSuccessStatusCode) return null;
-                    var bytes = await resp.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
-                    using (var ms = new MemoryStream(bytes))
-                        return (T)new DataContractJsonSerializer(typeof(T)).ReadObject(ms);
+                    using (var resp = await Http.GetAsync(url, ct).ConfigureAwait(false))
+                    {
+                        if ((int)resp.StatusCode == 404) return null;          // genuinely not found
+                        if (!resp.IsSuccessStatusCode) throw new HttpRequestException("HTTP " + (int)resp.StatusCode);
+                        var bytes = await resp.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                        using (var ms = new MemoryStream(bytes))
+                            return (T)new DataContractJsonSerializer(typeof(T)).ReadObject(ms);
+                    }
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+                catch (Exception ex)
+                {
+                    AppPaths.Log("LRCLIB (attempt " + (attempt + 1) + "): " + ex.Message);
+                    if (attempt == 2) { Interlocked.Increment(ref networkErrors); return null; }
+                    await Task.Delay(700 * (attempt + 1), ct).ConfigureAwait(false);
                 }
             }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-            catch (Exception ex) { AppPaths.Log("LRCLIB: " + ex.Message); return null; }
+            return null;
         }
     }
 }
