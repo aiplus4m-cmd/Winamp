@@ -20,6 +20,7 @@ namespace RetroAmp.Core
         public int Repeat { get; set; } // 0 off, 1 all, 2 one
 
         public bool EqEnabled { get; set; } = true;
+        public bool EqAutoGain { get; set; } = true;
         public float Preamp { get; set; }
         public float[] EqBands { get; set; } = new float[10];
         public string EqPresetName { get; set; } = "Flat";

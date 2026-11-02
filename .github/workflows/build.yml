@@ -40,6 +40,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      - name: Audio quality test (EQ presets must not distort loud masters)
+        run: dotnet run -c Release --project tests/DspTests/DspTests.csproj
+
       - name: Build
         run: dotnet build src/RetroAmp/RetroAmp.csproj -c Release -p:Version=${{ steps.ver.outputs.version }}
 

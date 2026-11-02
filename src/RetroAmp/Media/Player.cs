@@ -89,6 +89,7 @@ namespace RetroAmp.Media
         {
             var d = Audio.Dsp;
             d.EqEnabled = Settings.EqEnabled;
+            d.AutoGain = Settings.EqAutoGain;
             d.PreampDb = Settings.Preamp;
             for (int i = 0; i < 10; i++) d.SetBand(i, Settings.EqBands[i]);
             d.StereoWidth = (float)Settings.StereoWidth;

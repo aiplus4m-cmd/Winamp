@@ -1,6 +1,6 @@
 ﻿; Inno Setup script for RetroAmp
 #ifndef AppVersion
-  #define AppVersion "1.1.0"
+  #define AppVersion "1.1.1"
 #endif
 #ifndef SourceDir
   #define SourceDir "..\src\RetroAmp\bin\Release\net48"

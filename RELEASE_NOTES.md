@@ -1,6 +1,12 @@
 ## RetroAmp — trình nghe nhạc & xem phim phong cách cổ điển
 Phát triển bởi **NhảmStudio** · https://topvl.net
 
+**Mới trong 1.1.1 — sửa vỡ tiếng / rè khi mở to**
+- Thay bộ "soft clipper" (bẻ méo mọi mẫu trên −1,4 dB) bằng limiter look-ahead trong suốt: nhạc rock/EDM master to không còn bị rè.
+- Sửa EQ: các băng 12k/14k/16k chồng nhau làm preset Rock thực tế tăng tới +24,7 dB → nay đường EQ khớp đúng vị trí thanh trượt.
+- Nút **AUTO** mới trong EQ (mặc định bật): tự hạ mức đúng bằng phần EQ/hiệu ứng tăng thêm, nên không preset nào gây méo.
+- Reverb nhẹ hơn; CI có bài kiểm tra chất lượng âm thanh cho mọi preset.
+
 **Mới trong 1.1.0**
 - 🎤 Lời bài hát chạy theo nhạc: tự tải từ LRCLIB hoặc file `.lrc`, cửa sổ karaoke + lyrics nổi trên desktop, chỉnh lệch thời gian, tìm thủ công.
 - 🎨 Đổi skin ngay lập tức (7 skin có sẵn) và tự tạo skin bằng file `.ini`.

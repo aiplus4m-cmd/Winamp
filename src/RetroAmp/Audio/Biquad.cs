@@ -23,6 +23,17 @@ namespace RetroAmp.Audio
             a2 = (1 - alpha / A) / a0;
         }
 
+        /// <summary>Magnitude response in dB at a frequency.</summary>
+        public double MagnitudeDb(double freq, double sampleRate)
+        {
+            double w = 2 * Math.PI * freq / sampleRate;
+            double c1 = Math.Cos(w), s1 = Math.Sin(w), c2 = Math.Cos(2 * w), s2 = Math.Sin(2 * w);
+            double nr = b0 + b1 * c1 + b2 * c2, ni = -(b1 * s1 + b2 * s2);
+            double dr = 1 + a1 * c1 + a2 * c2, di = -(a1 * s1 + a2 * s2);
+            double mag2 = (nr * nr + ni * ni) / Math.Max(1e-20, dr * dr + di * di);
+            return 10 * Math.Log10(Math.Max(1e-20, mag2));
+        }
+
         public float Process(float x)
         {
             double y = b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;

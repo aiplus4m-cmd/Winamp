@@ -65,8 +65,8 @@ namespace RetroAmp.Audio
                 or += combR[i].Process(input, Room, Damp);
             }
             for (int i = 0; i < apL.Length; i++) { ol = apL[i].Process(ol); or = apR[i].Process(or); }
-            l += ol * wet * 2.2f;
-            r += or * wet * 2.2f;
+            l += ol * wet * 1.3f;
+            r += or * wet * 1.3f;
         }
 
         public void Clear()

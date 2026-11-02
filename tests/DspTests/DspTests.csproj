@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Audio-quality regression test for the DSP chain (runs on any OS: dotnet run -c Release) -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NAudio.Core" Version="2.2.1" />
+    <Compile Include="../../src/RetroAmp/Audio/Biquad.cs;../../src/RetroAmp/Audio/Reverb.cs;../../src/RetroAmp/Audio/Limiter.cs;../../src/RetroAmp/Audio/EqPresets.cs;../../src/RetroAmp/Audio/DspChain.cs;../../src/RetroAmp/Audio/VisBus.cs;../../src/RetroAmp/Audio/Fft.cs" />
+    <Compile Include="Program.cs" />
+  </ItemGroup>
+</Project>

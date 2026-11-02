@@ -37,7 +37,7 @@ namespace RetroAmp.UI
         RetroButton btnShuffle, btnRepeat, btnEq, btnPl, btnVis, btnLyr;
         FrameworkElement mainPanel, eqPanel, plPanel;
 
-        RetroButton eqOn, vocal;
+        RetroButton eqOn, eqAuto, vocal;
         RetroSlider preamp, width, reverb, xfade;
         readonly RetroSlider[] bands = new RetroSlider[10];
         EqCurve curve;
@@ -291,18 +291,29 @@ namespace RetroAmp.UI
             tb.AddButton(GlyphKind.Close, "Hide equalizer", () => { s.ShowEq = false; ApplyPanelVisibility(); });
             c.Children.Add(tb.At(0, 0));
 
-            eqOn = RetroButton.Make(GlyphKind.None, "ON", "Enable equalizer", 44, 18, () =>
+            eqOn = RetroButton.Make(GlyphKind.None, "ON", "Enable equalizer", 38, 18, () =>
             {
                 s.EqEnabled = !s.EqEnabled; eqOn.IsChecked = s.EqEnabled; player.ApplyDsp(); curve.InvalidateVisual();
             }, true);
             eqOn.IsChecked = s.EqEnabled;
             c.Children.Add(eqOn.At(8, 24));
-            var presetsBtn = RetroButton.Make(GlyphKind.None, "PRESETS", "Equalizer presets", 66, 18, null);
+            eqAuto = RetroButton.Make(GlyphKind.None, "AUTO", "Auto gain: lowers the level by exactly what the EQ / effects add,\nso loud songs never distort (recommended)", 46, 18, () =>
+            {
+                s.EqAutoGain = !s.EqAutoGain; eqAuto.IsChecked = s.EqAutoGain; player.ApplyDsp();
+                player.ShowStatus("Auto gain " + (s.EqAutoGain ? "on – no distortion from EQ boosts" : "off – EQ boosts may hit the limiter"), 3);
+            }, true);
+            eqAuto.IsChecked = s.EqAutoGain;
+            eqAuto.FontSize = 8.5;
+            c.Children.Add(eqAuto.At(48, 24));
+            var presetsBtn = RetroButton.Make(GlyphKind.None, "PRESETS", "Equalizer presets", 60, 18, null);
             presetsBtn.Click += () => ShowPresetMenu(presetsBtn);
-            c.Children.Add(presetsBtn.At(56, 24));
-            c.Children.Add(RetroButton.Make(GlyphKind.None, "RESET", "Flat EQ, reset effects", 52, 18, ResetEq).At(126, 24));
-            curve = new EqCurve(s) { Width = W - 194, Height = 20 };
-            c.Children.Add(curve.At(186, 23));
+            presetsBtn.FontSize = 8.5;
+            c.Children.Add(presetsBtn.At(96, 24));
+            var resetBtn = RetroButton.Make(GlyphKind.None, "RESET", "Flat EQ, reset effects", 46, 18, ResetEq);
+            resetBtn.FontSize = 8.5;
+            c.Children.Add(resetBtn.At(158, 24));
+            curve = new EqCurve(s) { Width = W - 216, Height = 20 };
+            c.Children.Add(curve.At(208, 23));
 
             double top = 52, sh = 76;
             preamp = new RetroSlider { Kind = SliderStyle.EqBand, Orientation = Orientation.Vertical, Width = 14, Height = sh, Value = 0.5 + s.Preamp / 24.0, DefaultValue = 0.5 };
@@ -411,7 +422,7 @@ namespace RetroAmp.UI
             {
                 var p = kv;
                 var mi = new MenuItem { Header = p.Key, IsCheckable = true, IsChecked = s.EqPresetName == p.Key };
-                mi.Click += (o, e) => ApplyPreset(p.Key, p.Value, p.Key == "Flat" ? 0 : -2);
+                mi.Click += (o, e) => ApplyPreset(p.Key, p.Value, 0);
                 menu.Items.Add(mi);
             }
             if (s.CustomPresets.Count > 0)
