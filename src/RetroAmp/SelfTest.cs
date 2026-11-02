@@ -222,7 +222,7 @@ namespace RetroAmp
         static double EqGainTest()
         {
             var src = new SineProvider(60);
-            var dsp = new DspChain(src) { Volume = 1f };
+            var dsp = new DspChain(src) { Volume = 1f, AutoGain = false };
             var buf = new float[44100];
             dsp.Read(buf, 0, buf.Length);
             double before = Rms(buf);
