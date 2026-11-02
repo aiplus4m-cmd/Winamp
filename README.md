@@ -1,4 +1,5 @@
 <p align="center"><img src="assets/retroamp.png" width="96" alt="RetroAmp"></p>
+<p align="center">Phát triển bởi <b>NhảmStudio</b> · <a href="https://topvl.net">https://topvl.net</a></p>
 
 # RetroAmp
 
@@ -30,10 +31,18 @@ Yêu cầu: **Windows 10/11** (đã có sẵn .NET Framework 4.8 — app chỉ ~
 - 🌐 **YouTube & SoundCloud**: dán link bài hát / playlist / kênh / set, hoặc **tìm kiếm** ngay trong app; YouTube có thể mở dạng video. Tự tải trước bài kế tiếp để chuyển bài mượt. Cũng nhận link radio internet / file media trực tiếp.
 - 🎚️ **Mix**: EQ 10 băng (60 Hz → 16 kHz) + preamp, 20+ preset (Rock, Pop, Dance, Bass Boost, Bolero…) và lưu preset riêng; **Reverb**, **Stereo width**, **Karaoke** (khử giọng hát giữa), **Crossfade** 0–10 s, limiter chống vỡ tiếng.
 - 🔊 **Visualizer**: *Speakers & VU Meters* (cặp loa với màng loa bass phập phồng, đèn LED theo nhịp, kim VU analog), *Spectrum Analyzer* cổ điển, *Oscilloscope*, *Radial Pulse*, *Starfield*. Mini-visualizer trong màn LCD (click để đổi kiểu). Khi xem video, visualizer vẫn chạy (WASAPI loopback).
+- 🎤 **Lời bài hát chạy theo nhạc** (như jetAudio): tự tìm lyrics có mốc thời gian từ [LRCLIB](https://lrclib.net) hoặc dùng file `.lrc` cùng tên đặt cạnh bài hát. Cửa sổ lyrics kiểu karaoke (dòng đang hát đổi màu dần, bấm vào dòng để tua tới), **lyrics nổi trên desktop** (kéo để di chuyển, lăn chuột để đổi cỡ chữ), chỉnh lệch ±0,5 s cho từng bài, tìm thủ công, nạp file `.lrc`.
+- 🎨 **Đổi giao diện (skin)** ngay lập tức: *Retro Night, Classic 2000, Silver Audio, Amber Hi-Fi, Sakura, NhảmStudio, Matrix* — và tự tạo skin riêng bằng file `.ini` (Menu → Skins → *Create my own skin…*).
 - 📃 **Playlist**: kéo-thả file/thư mục/link, tìm kiếm, sắp xếp, xóa trùng, lưu/mở M3U/M3U8/PLS, tự nhớ playlist khi tắt.
 - ⌨️ Phím tắt kiểu cổ điển (`Z X C V B`), **phím media** trên bàn phím hoạt động toàn cục, nút Prev/Play/Next trên thumbnail taskbar, chỉnh kích thước 100–200%, luôn ở trên cùng, chọn thiết bị âm thanh.
 
 \* Một số định dạng cần codec miễn phí từ Microsoft Store (Web Media Extensions, HEVC, AV1).
+
+### Đổi giao diện
+Bấm nút **≡** trên thanh tiêu đề (hoặc chuột phải vào khung player) → **Skins** → chọn skin. Muốn tự làm: **Skins → Create my own skin from the current one…**, đặt tên, Notepad sẽ mở file `.ini` chứa toàn bộ màu (`#RRGGBB`) — sửa, lưu, rồi chọn lại skin đó trong menu. File skin nằm trong thư mục `Skins` (mở nhanh bằng *Open skins folder*); có thể chia sẻ file `.ini` cho người khác.
+
+### Lời bài hát
+Bấm nút **LRC** (phím `Y`) để mở cửa sổ lyrics, `Shift+Y` để bật lyrics nổi trên desktop. Lyrics tải về được lưu lại để lần sau mở ngay. Nếu tìm sai bài: chuột phải vào cửa sổ lyrics → *Search lyrics…* để sửa tên ca sĩ/bài hát và chọn kết quả khác; nếu lời chạy nhanh/chậm: *Lyrics later/earlier* (hoặc phím `+` / `−`). Bạn cũng có thể đặt file `Tên bài.lrc` cạnh `Tên bài.mp3`.
 
 ### YouTube / SoundCloud hoạt động thế nào?
 RetroAmp dùng công cụ mã nguồn mở [yt-dlp](https://github.com/yt-dlp/yt-dlp). Lần đầu bạn mở link online, app hỏi và tự tải `yt-dlp.exe` (~18 MB) vào thư mục Tools. Nếu YouTube thay đổi và không phát được: **Menu → Online → Update yt-dlp**. Với YouTube, có thể cài thêm **Deno** (menu Online) để yt-dlp lấy đầy đủ định dạng. Nếu YouTube báo *"Sign in to confirm you're not a bot"*, vào **Menu → Online → YouTube: use sign-in cookies from browser** và chọn trình duyệt bạn đã đăng nhập YouTube (Firefox ổn định nhất). File tải về được cache để nghe lại không cần tải lại; xóa cache trong cùng menu.
@@ -50,6 +59,7 @@ RetroAmp dùng công cụ mã nguồn mở [yt-dlp](https://github.com/yt-dlp/yt
 | `Space` | Play/Pause | `Ctrl+F` | Tìm trong playlist |
 | `←` `→` | Tua 5 giây | `Ctrl+T` | Luôn ở trên cùng |
 | `↑` `↓` | Âm lượng | `Ctrl+V` | Dán link vào playlist |
+| `Y` | Cửa sổ lyrics | `Shift+Y` | Lyrics nổi trên desktop |
 
 ## Build từ mã nguồn
 
@@ -73,5 +83,10 @@ src/RetroAmp/
 installer/RetroAmp.iss   Inno Setup script
 ```
 
+## Tác giả
+**NhảmStudio** — https://topvl.net
+
+<p><img src="assets/nhamstudio-logo.png" width="260" alt="NhảmStudio"></p>
+
 ## Giấy phép
-MIT. RetroAmp là dự án độc lập, lấy cảm hứng từ phong cách các media player cổ điển; không liên kết với Winamp, jetAudio hay các chủ sở hữu thương hiệu đó. Sử dụng: [NAudio](https://github.com/naudio/NAudio) (MIT), [TagLib#](https://github.com/mono/taglib-sharp) (LGPL), [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense, tải riêng khi cần). Hãy tôn trọng điều khoản sử dụng của YouTube/SoundCloud và bản quyền nội dung.
+MIT. RetroAmp là dự án độc lập, lấy cảm hứng từ phong cách các media player cổ điển; không liên kết với Winamp, jetAudio hay các chủ sở hữu thương hiệu đó. Sử dụng: [NAudio](https://github.com/naudio/NAudio) (MIT), [TagLib#](https://github.com/mono/taglib-sharp) (LGPL), [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense, tải riêng khi cần), lời bài hát từ [LRCLIB](https://lrclib.net). Hãy tôn trọng điều khoản sử dụng của YouTube/SoundCloud và bản quyền nội dung.
