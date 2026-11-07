@@ -23,6 +23,7 @@ namespace RetroAmp
         static readonly StringBuilder Log = new StringBuilder();
         static int failures;
         static string logFile;
+        static Player earlyPlayer;
         static void Write(string line)
         {
             line = DateTime.Now.ToString("HH:mm:ss ") + line;
@@ -39,6 +40,8 @@ namespace RetroAmp
             logFile = Path.Combine(outDir, "selftest.log");
             try { File.Delete(logFile); } catch { }
             var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+            // Like Program.Main: the player is built before app.Run(), with no SynchronizationContext installed yet.
+            earlyPlayer = new Player(new Settings { Scale = 1.25 });
             app.DispatcherUnhandledException += (s, e) => { Fail("UI exception: " + e.Exception); e.Handled = true; };
             AppDomain.CurrentDomain.UnhandledException += (s, e) => Write("FATAL " + e.ExceptionObject);
             TaskScheduler.UnobservedTaskException += (s, e) => { Write("WARN unobserved task: " + e.Exception?.GetBaseException().Message); e.SetObserved(); };
@@ -64,8 +67,8 @@ namespace RetroAmp
 
             // ---- main window
             Step("creating main window");
-            var settings = new Settings { Scale = 1.25 };
-            var player = new Player(settings);
+            var player = earlyPlayer;
+            var settings = player.Settings;
             player.ApplyDsp();
             player.AddRange(new[] { new PlaylistItem(wav, "Test tone", TimeSpan.FromSeconds(6)),
                 new PlaylistItem("https://www.youtube.com/watch?v=dQw4w9WgXcQ", "Online example", TimeSpan.FromSeconds(212)),
@@ -196,7 +199,12 @@ namespace RetroAmp
                 player.Items.Clear();
                 player.AddRange(files.Select(f => new PlaylistItem(f)));
                 var seen = new System.Collections.Generic.List<string>();
-                Action onTrack = () => { if (player.Current != null) seen.Add(Path.GetFileName(player.Current.Location)); };
+                int offThread = 0;
+                Action onTrack = () =>
+                {
+                    if (!Application.Current.Dispatcher.CheckAccess()) offThread++;
+                    if (player.Current != null) seen.Add(Path.GetFileName(player.Current.Location));
+                };
                 player.TrackChanged += onTrack;
                 var t0 = DateTime.Now;
                 player.Play(player.Items[0]);
@@ -213,7 +221,8 @@ namespace RetroAmp
                 var d = player.Audio.Dsp;
                 string summary = $"crossfade {crossfade}s: played {seen.Count}/{files.Count} tracks in {(DateTime.Now - t0).TotalSeconds:0.0}s, final state {player.State}, longest silence {maxSilence:0.00}s, glitches {d.Glitches}";
                 bool allPlayed = files.All(f => seen.Contains(Path.GetFileName(f)));
-                if (allPlayed && player.State == PlayState.Stopped && maxSilence < 2.5) Ok(summary); else Fail(summary + " · order: " + string.Join(" > ", seen));
+                summary += ", track-change events off the UI thread: " + offThread;
+                if (allPlayed && offThread == 0 && player.State == PlayState.Stopped && maxSilence < 2.5) Ok(summary); else Fail(summary + " · order: " + string.Join(" > ", seen));
                 Save((FrameworkElement)win.Content, Path.Combine(outDir, "after-playlist-xf" + crossfade + ".png"));
             }
             player.Settings.CrossfadeSeconds = 0;
