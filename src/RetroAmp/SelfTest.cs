@@ -39,6 +39,9 @@ namespace RetroAmp
             logFile = Path.Combine(outDir, "selftest.log");
             try { File.Delete(logFile); } catch { }
             var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+            app.DispatcherUnhandledException += (s, e) => { Fail("UI exception: " + e.Exception); e.Handled = true; };
+            AppDomain.CurrentDomain.UnhandledException += (s, e) => Write("FATAL " + e.ExceptionObject);
+            TaskScheduler.UnobservedTaskException += (s, e) => { Write("WARN unobserved task: " + e.Exception?.GetBaseException().Message); e.SetObserved(); };
             app.Startup += async (s, e) =>
             {
                 try { await RunAll(outDir, online); }
@@ -137,15 +140,83 @@ namespace RetroAmp
             {
                 await player.Audio.PlayAsync(wav, 0);
                 await Task.Delay(800);
-                Ok("audio output playing, position " + player.Audio.Position.TotalSeconds.ToString("0.00") + " s");
+                Ok("audio output playing, position " + player.Audio.Position.TotalSeconds.ToString("0.00") + " s · " + player.Audio.OutputDescription);
                 player.Audio.Stop();
             }
-            catch (Exception ex) { Ok("audio output not available on this machine (" + ex.Message + ")"); }
+            catch (Exception ex) { Ok("audio output problem (" + ex.Message + ")"); }
+            if (player.Audio.OutputDescription.StartsWith("No audio device") || player.Audio.OutputDescription.StartsWith("(not"))
+            {
+                Ok("no sound card on this machine → testing playback with the silent real-time output");
+                player.Audio.Configure(OutputMode.Null, "", -1);
+            }
+            await PlaylistPlaybackTest(outDir, win, player);
 
             if (online) await OnlineTests(outDir);
             Step("closing windows");
             vw.Close();
             win.Close();
+        }
+
+        /// <summary>
+        /// Plays a whole playlist (MP3, M4A, WAV) through the real Player + output device, with the
+        /// visualizer / lyrics / desktop-lyrics windows open, and checks every track change happens.
+        /// </summary>
+        static async Task PlaylistPlaybackTest(string outDir, MainWindow win, Player player)
+        {
+            Step("playlist playback (track changes)");
+            try { NAudio.MediaFoundation.MediaFoundationApi.Startup(); } catch { }
+            var files = new System.Collections.Generic.List<string>();
+            for (int i = 0; i < 2; i++)
+            {
+                string w = Path.Combine(outDir, "pl-" + i + ".wav");
+                WriteTestWav(w, 4);
+                foreach (var kind in new[] { "mp3", "m4a" })
+                {
+                    string f = Path.Combine(outDir, "pl-" + i + "." + kind);
+                    try
+                    {
+                        using (var r = new NAudio.Wave.WaveFileReader(w))
+                        {
+                            if (kind == "mp3") NAudio.Wave.MediaFoundationEncoder.EncodeToMp3(r, f, 192000);
+                            else NAudio.Wave.MediaFoundationEncoder.EncodeToAac(r, f, 192000);
+                        }
+                        files.Add(f);
+                    }
+                    catch (Exception ex) { Write("WARN could not encode " + kind + ": " + ex.Message); }
+                }
+                files.Add(w);
+            }
+            Ok("test playlist: " + string.Join(", ", files.Select(Path.GetFileName)));
+
+            foreach (var crossfade in new[] { 0.0, 1.5 })
+            {
+                var st = player.Settings;
+                st.CrossfadeSeconds = crossfade; st.Repeat = 0; st.Shuffle = false;
+                player.Stop();
+                player.Items.Clear();
+                player.AddRange(files.Select(f => new PlaylistItem(f)));
+                var seen = new System.Collections.Generic.List<string>();
+                Action onTrack = () => { if (player.Current != null) seen.Add(Path.GetFileName(player.Current.Location)); };
+                player.TrackChanged += onTrack;
+                var t0 = DateTime.Now;
+                player.Play(player.Items[0]);
+                double maxSilence = 0; DateTime? silentSince = null;
+                while ((DateTime.Now - t0).TotalSeconds < files.Count * 4 + 25)
+                {
+                    await Task.Delay(100);
+                    if (player.State == PlayState.Stopped && (DateTime.Now - t0).TotalSeconds > 2) break;
+                    bool silent = Audio.VisBus.MsSinceLastWrite > 250 || Audio.Analyzer.Instance.LevelL < 0.01f;
+                    if (silent) { silentSince = silentSince ?? DateTime.Now; maxSilence = Math.Max(maxSilence, (DateTime.Now - silentSince.Value).TotalSeconds); }
+                    else silentSince = null;
+                }
+                player.TrackChanged -= onTrack;
+                var d = player.Audio.Dsp;
+                string summary = $"crossfade {crossfade}s: played {seen.Count}/{files.Count} tracks in {(DateTime.Now - t0).TotalSeconds:0.0}s, final state {player.State}, longest silence {maxSilence:0.00}s, glitches {d.Glitches}";
+                bool allPlayed = files.All(f => seen.Contains(Path.GetFileName(f)));
+                if (allPlayed && player.State == PlayState.Stopped && maxSilence < 2.5) Ok(summary); else Fail(summary + " · order: " + string.Join(" > ", seen));
+                Save((FrameworkElement)win.Content, Path.Combine(outDir, "after-playlist-xf" + crossfade + ".png"));
+            }
+            player.Settings.CrossfadeSeconds = 0;
         }
 
         static string Safe(string n)

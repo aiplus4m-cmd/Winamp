@@ -10,7 +10,7 @@ using RetroAmp.Core;
 
 namespace RetroAmp.Audio
 {
-    public enum OutputMode { Wasapi = 0, WaveOut = 1 }
+    public enum OutputMode { Wasapi = 0, WaveOut = 1, Null = 2 }
 
     public sealed class AudioDeviceInfo
     {
@@ -130,12 +130,31 @@ namespace RetroAmp.Audio
                     AppPaths.Log("WASAPI output failed, falling back to WaveOut: " + ex.Message);
                 }
             }
-            var wo = new WaveOutEvent { DeviceNumber = waveOutDevice, DesiredLatency = 300, NumberOfBuffers = 4 };
-            wo.Init(provider);
-            HookStopped(wo);
-            output = wo;
-            OutputDescription = "WaveOut (compatibility) · device #" + waveOutDevice + " · " + MixFormat.SampleRate + " Hz";
-            LatencyMs = 260;
+            if (mode != OutputMode.Null)
+            {
+                try
+                {
+                    var wo = new WaveOutEvent { DeviceNumber = waveOutDevice, DesiredLatency = 300, NumberOfBuffers = 4 };
+                    wo.Init(provider);
+                    HookStopped(wo);
+                    output = wo;
+                    OutputDescription = "WaveOut (compatibility) · device #" + waveOutDevice + " · " + MixFormat.SampleRate + " Hz";
+                    LatencyMs = 260;
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    AppPaths.Log("WaveOut failed: " + ex.Message);
+                    if (mode == OutputMode.WaveOut) OutputError?.Invoke("No working audio device (" + ex.Message + ")");
+                }
+            }
+            // no sound device at all: keep the player working silently instead of failing every track
+            var nul = new NullOutput();
+            nul.Init(provider);
+            HookStopped(nul);
+            output = nul;
+            OutputDescription = mode == OutputMode.Null ? "Silent test output" : "No audio device found – playing silently";
+            LatencyMs = 40;
         }
 
         void HookStopped(IWavePlayer p)

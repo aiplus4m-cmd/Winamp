@@ -39,11 +39,17 @@ namespace RetroAmp
                 var app = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
                 app.DispatcherUnhandledException += (s, e) =>
                 {
+                    // Never show a dialog from inside this handler: when the error happens during layout/render,
+                    // a modal MessageBox throws again ("dispatcher processing suspended") and kills the app.
                     AppPaths.Log("Unhandled: " + e.Exception);
                     e.Handled = true;
-                    try { MessageBox.Show(e.Exception.Message, "RetroAmp", MessageBoxButton.OK, MessageBoxImage.Warning); } catch { }
+                    ReportLater(e.Exception);
                 };
-                AppDomain.CurrentDomain.UnhandledException += (s, e) => AppPaths.Log("Fatal: " + e.ExceptionObject);
+                AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+                {
+                    AppPaths.Log("Fatal: " + e.ExceptionObject);
+                    try { File.WriteAllText(CrashFile, DateTime.Now + Environment.NewLine + e.ExceptionObject); } catch { }
+                };
                 System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (s, e) => { AppPaths.Log("Task: " + e.Exception); e.SetObserved(); };
 
                 var settings = Settings.Load();
@@ -66,12 +72,46 @@ namespace RetroAmp
                 catch (Exception ex) { AppPaths.Log("Restore playlist failed: " + ex.Message); }
 
                 mainWindow = new MainWindow(player, settings);
+                mainWindow.Loaded += (s, e) => ShowPreviousCrash();
                 var files = args.Where(a => !a.StartsWith("/") && !a.StartsWith("--")).ToArray();
                 if (files.Length > 0)
                     mainWindow.Loaded += (s, e) => OpenArgs(files);
                 if (first) StartPipeServer(app.Dispatcher);
                 return app.Run(mainWindow);
             }
+        }
+
+        static string CrashFile => Path.Combine(AppPaths.DataDir, "crash.txt");
+        static DateTime lastReport = DateTime.MinValue;
+
+        static void ReportLater(Exception ex)
+        {
+            if ((DateTime.Now - lastReport).TotalSeconds < 15) return;
+            lastReport = DateTime.Now;
+            try
+            {
+                Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    try { MessageBox.Show(ex.GetBaseException().Message + "\n\nDetails were written to:\n" + AppPaths.LogFile, "RetroAmp", MessageBoxButton.OK, MessageBoxImage.Warning); } catch { }
+                }), DispatcherPriority.ApplicationIdle);
+            }
+            catch { }
+        }
+
+        static void ShowPreviousCrash()
+        {
+            try
+            {
+                if (!File.Exists(CrashFile)) return;
+                string text = File.ReadAllText(CrashFile);
+                File.Delete(CrashFile);
+                MessageBox.Show(mainWindow,
+                    "RetroAmp đã bị tắt đột ngột ở lần chạy trước. / RetroAmp closed unexpectedly last time.\n\n" +
+                    (text.Length > 900 ? text.Substring(0, 900) + "…" : text) +
+                    "\n\nLog: " + AppPaths.LogFile,
+                    "RetroAmp", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            catch { }
         }
 
         static void OpenArgs(string[] files)
