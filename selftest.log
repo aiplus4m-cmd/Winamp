@@ -1,0 +1,41 @@
+03:35:21 ...  writing wav
+03:35:21 OK   wrote test wav
+03:35:21 ...  decoding wav
+03:35:22 OK   decoded wav: 44100 Hz, 2 ch, 6.0s, peak 0.72
+03:35:22 ...  creating main window
+03:35:26 OK   main window rendered
+03:35:26 ...  visualizers
+03:35:32 OK   visualizers rendered
+03:35:32 OK   analyzer sees signal (max band 0.86, level 0.32, bass 0.70)
+03:35:32 ...  skins
+03:35:32 OK   skins rendered: 7
+03:35:32 OK   LRC parser
+03:35:32 OK   title guess: 'Sơn Tùng M-TP' / 'Chúng Ta Của Hiện Tại'
+03:35:32 OK   about window rendered
+03:35:32 ...  lyrics from LRCLIB
+03:35:33 OK   LRCLIB lyrics: Coldplay - Yellow, 48 lines, synced=True
+03:35:33 OK   Vietnamese lyrics lookup: Sơn Tùng M-TP - Chúng Ta Của Hiện Tại, 104 lines, synced=True
+03:35:33 OK   lyrics windows rendered
+03:35:33 OK   m3u8 round trip
+03:35:33 OK   eq gain test: 12.1 dB at 60 Hz with +12 dB band
+03:35:33 ...  audio output
+03:35:34 OK   audio output playing, position 0.86 s · No audio device found – playing silently
+03:35:34 OK   no sound card on this machine → testing playback with the silent real-time output
+03:35:34 ...  playlist playback (track changes)
+03:35:34 OK   test playlist: pl-0.mp3, pl-0.m4a, pl-0.wav, pl-1.mp3, pl-1.m4a, pl-1.wav
+03:35:59 OK   crossfade 0s: played 6/6 tracks in 24.3s, final state Stopped, longest silence 0.00s, glitches 1, track-change events off the UI thread: 0
+03:36:23 OK   crossfade 1.5s: played 6/6 tracks in 24.3s, final state Stopped, longest silence 0.00s, glitches 1, track-change events off the UI thread: 0
+03:36:23 ...  downloading yt-dlp
+03:36:24 OK   yt-dlp downloaded: C:\Users\runneradmin\AppData\Local\RetroAmp\Tools\yt-dlp.exe
+03:36:24 ...  listing scsearch3:lofi chill
+03:36:27 OK   scsearch3:lofi chill: 3 results, first = Lofi Chill - Nhu Anh a Thay Em (https://soundcloud.com/playlist-lofi-chill-siu-max/nhu-anh-a-tha-y-em-lofi-ver)
+03:36:27 ...  downloading https://soundcloud.com/playlist-lofi-chill-siu-max/nhu-anh-a-tha-y-em-lofi-ver
+03:36:30 OK     downloaded Soundcloud-1825320069.m4a (3605 KB)
+03:36:30 ...  decoding .m4a
+03:36:30 OK   decoded .m4a: 44100 Hz, 2 ch, 0.0s, peak 0.17
+03:36:30 ...  listing ytsearch3:creative commons music
+03:36:32 OK   ytsearch3:creative commons music: 3 results, first = Creative Commons Music - Creative Commons Music /// Adventures (https://www.youtube.com/watch?v=GdHyV01hXXQ)
+03:36:32 ...  downloading https://www.youtube.com/watch?v=GdHyV01hXXQ
+03:36:35 OK     (non-fatal) YouTube test: ERROR: [youtube] GdHyV01hXXQ: Sign in to confirm you�re not a bot. This helps protect our community. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies
+03:36:35 ...  closing windows
+03:36:35 ALL PASSED
