@@ -15,7 +15,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <Prefer32Bit>false</Prefer32Bit>
-    <Version>1.1.2</Version>
+    <Version>1.1.3</Version>
     <Product>RetroAmp</Product>
     <Description>RetroAmp - a lightweight retro media player</Description>
     <Copyright>NhảmStudio · MIT License</Copyright>

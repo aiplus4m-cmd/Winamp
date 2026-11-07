@@ -15,7 +15,7 @@ namespace RetroAmp.Audio
         Thread thread;
         volatile bool stop;
         volatile PlaybackState state = PlaybackState.Stopped;
-        readonly SynchronizationContext ctx = SynchronizationContext.Current;
+        readonly SynchronizationContext ctx = SynchronizationContext.Current ?? new System.Windows.Threading.DispatcherSynchronizationContext(System.Windows.Threading.Dispatcher.CurrentDispatcher);
         public event EventHandler<StoppedEventArgs> PlaybackStopped;
 
         public float Volume { get; set; } = 1f;

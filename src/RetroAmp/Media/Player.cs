@@ -208,6 +208,8 @@ namespace RetroAmp.Media
 
         void OnTrackEnded()
         {
+            var d = System.Windows.Application.Current?.Dispatcher;
+            if (d != null && !d.CheckAccess()) { d.BeginInvoke(new Action(OnTrackEnded)); return; }
             if (State == PlayState.Stopped) return;
             if ((RepeatMode)Settings.Repeat == RepeatMode.One && Current != null) { Play(Current, true); return; }
             Advance(true);

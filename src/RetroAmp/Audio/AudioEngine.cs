@@ -49,7 +49,12 @@ namespace RetroAmp.Audio
 
         public AudioEngine()
         {
-            ui = SynchronizationContext.Current ?? new SynchronizationContext();
+            // Events (track ended, device lost) must reach the UI thread. When the engine is created before
+            // the WPF dispatcher runs, SynchronizationContext.Current is still null and a plain context would
+            // post to the thread pool — touching the UI from there crashed the app at the end of every track.
+            ui = SynchronizationContext.Current;
+            if (ui == null || ui.GetType() == typeof(SynchronizationContext))
+                ui = new System.Windows.Threading.DispatcherSynchronizationContext(System.Windows.Threading.Dispatcher.CurrentDispatcher);
             mixer = new Mixer(MixFormat);
             mixer.DeckFinished += OnDeckFinished;
             Dsp = new DspChain(mixer);

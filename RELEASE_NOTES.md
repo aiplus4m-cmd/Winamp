@@ -1,6 +1,12 @@
 ## RetroAmp — trình nghe nhạc & xem phim phong cách cổ điển
 Phát triển bởi **NhảmStudio** · https://topvl.net
 
+**Mới trong 1.1.3 — sửa lỗi app tự tắt khi chuyển bài / fixes the app closing at the end of a track**
+- Hết một bài, app dừng một lát rồi tự tắt: tín hiệu "hết bài" chạy trên luồng phụ rồi chạm vào giao diện → Windows đóng app. Đã sửa, và có bài test phát liên tục cả playlist (MP3, M4A, WAV, có và không có crossfade) chạy trong CI. / At the end of every track the "track ended" event ran on a background thread and touched the UI, which crashed the app. Fixed, with a CI test that plays whole playlists back to back.
+- Không còn hiện hộp thoại lỗi từ bên trong bộ xử lý lỗi (có thể tự làm sập app); nếu app bị tắt đột ngột, lần mở sau sẽ hiện thông tin lỗi. / Crash reporting can no longer crash the app itself; unexpected exits are reported on the next start.
+- Máy không có thiết bị âm thanh vẫn chạy playlist bình thường (phát im lặng). / Machines without an audio device keep playing silently instead of failing every track.
+- README song ngữ Việt – Anh. / Bilingual Vietnamese–English README.
+
 **Mới trong 1.1.2 — sửa rè/lụp bụp trên laptop**
 - Xuất âm qua **WASAPI** (giống trình duyệt, Windows Media Player, VLC) thay cho WaveOut cũ, ở đúng tần số lấy mẫu của loa (thường 48 kHz) → Windows không phải chuyển đổi thêm.
 - Bộ đệm lớn hơn, luồng âm thanh ưu tiên cao, giảm thời gian dừng của bộ dọn bộ nhớ → giao diện/visualizer/lyrics không thể làm ngắt âm.

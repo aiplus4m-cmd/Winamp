@@ -37,6 +37,7 @@ namespace RetroAmp
                 // avoid long blocking garbage collections that could interrupt the audio thread
                 try { System.Runtime.GCSettings.LatencyMode = System.Runtime.GCLatencyMode.SustainedLowLatency; } catch { }
                 var app = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
+                SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(app.Dispatcher));
                 app.DispatcherUnhandledException += (s, e) =>
                 {
                     // Never show a dialog from inside this handler: when the error happens during layout/render,
